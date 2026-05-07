@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useApp } from '../../context/AppContext.jsx'
 import Icon from '../../components/Icon.jsx'
 import Pill from '../../components/Pill.jsx'
+import { categorizeUser, CATEGORY_THEME, LINE_THEME } from '../../lib/category.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Quick assign — backend contract
@@ -30,22 +31,33 @@ import Pill from '../../components/Pill.jsx'
 //     5. Returns the created assignment rows
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SOURCE_OPTIONS = [
-  { id: 'admin',            en: 'Manual (Admin)',         ar: 'يدوي (مدير)' },
-  { id: 'auto-role',        en: 'Role change (HRIS)',     ar: 'تغيير الدور' },
-  { id: 'launch-readiness', en: 'Product launch',         ar: 'إطلاق منتج' },
-  { id: 'auto-version',     en: 'SOP / version update',   ar: 'تحديث الإجراء' },
-  { id: 'quality-event',    en: 'Quality event (QMS)',    ar: 'حدث جودة (QMS)' },
-  { id: 'cert-expiry',      en: 'Certificate expiry',     ar: 'انتهاء شهادة' },
-  { id: 'crm-trigger',      en: 'CRM event (Veeva/SF)',   ar: 'حدث CRM' },
+const ROLE_OPTIONS = [
+  { id: 'all',       en: 'Any role',       ar: 'أي دور' },
+  { id: 'rep',       en: 'Rep',            ar: 'مندوب' },
+  { id: 'dm',        en: 'DM',             ar: 'مدير منطقة' },
+  { id: 'bu',        en: 'BU Manager',     ar: 'مدير وحدة' },
+  { id: 'marketing', en: 'Marketing',      ar: 'تسويق' },
+  { id: 'admin',     en: 'Admin',          ar: 'مدير' },
+  { id: 'auditor',   en: 'Auditor',        ar: 'مدقق' },
+]
+
+const LINE_OPTIONS = [
+  { id: 'all', en: 'Any line', ar: 'أي مستوى' },
+  { id: 'L1',  en: 'L1 · Managing Director',  ar: 'L1' },
+  { id: 'L2',  en: 'L2 · BU Head',            ar: 'L2' },
+  { id: 'L3',  en: 'L3 · National Sales',     ar: 'L3' },
+  { id: 'L4',  en: 'L4 · District / Regional', ar: 'L4' },
+  { id: 'L5',  en: 'L5 · Senior',             ar: 'L5' },
+  { id: 'L6',  en: 'L6 · Rep / MSL / KAM',    ar: 'L6' },
 ]
 
 export default function QuickAssignModal({ course, onClose }) {
   const { t, users, assignments, assignCourseToUsers, logAction } = useApp()
   const [picked, setPicked] = useState([])
   const [filter, setFilter] = useState('')
+  const [roleFilter, setRoleFilter] = useState('all')
+  const [lineFilter, setLineFilter] = useState('all')
   const [deadlineDays, setDeadlineDays] = useState(30)
-  const [source, setSource] = useState('admin')
 
   const eligible = useMemo(() => users.filter((u) => u.role === 'learner' || u.role === 'manager'), [users])
   const alreadyAssigned = useMemo(
@@ -53,11 +65,19 @@ export default function QuickAssignModal({ course, onClose }) {
     [assignments, course.id]
   )
 
+  // Resolve each user's category once for filtering — falls back to the
+  // runtime classifier for legacy records without a persisted category.
+  const userCategory = (u) => u.category || categorizeUser(u.roleRaw, u.jobTitle, u.role)
+
   const filtered = useMemo(() => {
     const q = filter.toLowerCase()
-    if (!q) return eligible
-    return eligible.filter((u) => (u.name + ' ' + u.email + ' ' + (u.jobTitle || '') + ' ' + (u.therapyArea || '')).toLowerCase().includes(q))
-  }, [eligible, filter])
+    return eligible.filter((u) => {
+      if (roleFilter !== 'all' && userCategory(u) !== roleFilter) return false
+      if (lineFilter !== 'all' && u.line !== lineFilter) return false
+      if (q && !(u.name + ' ' + u.email + ' ' + (u.jobTitle || '') + ' ' + (u.therapyArea || '')).toLowerCase().includes(q)) return false
+      return true
+    })
+  }, [eligible, filter, roleFilter, lineFilter])
 
   const togglePick = (id) => setPicked((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id])
   const pickAll = () => setPicked(filtered.filter((u) => !alreadyAssigned.has(u.id)).map((u) => u.id))
@@ -65,12 +85,13 @@ export default function QuickAssignModal({ course, onClose }) {
 
   const handleAssign = () => {
     if (picked.length === 0) return
-    const created = assignCourseToUsers(course.id, picked, { deadlineDays, source })
+    const created = assignCourseToUsers(course.id, picked, { deadlineDays, source: 'admin' })
     logAction('course_assigned', course.id, {
       userCount: created.length,
       deadlineDays,
-      source,
       title: course.title,
+      roleFilter: roleFilter !== 'all' ? roleFilter : undefined,
+      lineFilter: lineFilter !== 'all' ? lineFilter : undefined,
     })
     onClose({ count: created.length })
   }
@@ -95,19 +116,50 @@ export default function QuickAssignModal({ course, onClose }) {
             </div>
           </div>
 
-          <div className="row" style={{ gap: 10, marginBottom: 12 }}>
-            <div className="field" style={{ flex: 1, marginBottom: 0 }}>
+          <div className="row" style={{ gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+            <div className="field" style={{ flex: '1 1 140px', marginBottom: 0, minWidth: 0 }}>
               <label>{t('Deadline (days)', 'الموعد (أيام)')}</label>
               <input type="number" className="filter-input" min="1" max="365" value={deadlineDays} onChange={(e) => setDeadlineDays(+e.target.value || 1)} />
               <div className="muted" style={{ fontSize: 10, marginTop: 4 }}>{t('Due by', 'موعد الانتهاء')}: {dueLabel}</div>
             </div>
-            <div className="field" style={{ flex: 1, marginBottom: 0 }}>
-              <label>{t('Assignment source', 'مصدر التعيين')}</label>
-              <select className="filter-input" value={source} onChange={(e) => setSource(e.target.value)}>
-                {SOURCE_OPTIONS.map((s) => <option key={s.id} value={s.id}>{t(s.en, s.ar)}</option>)}
+            <div className="field" style={{ flex: '1 1 160px', marginBottom: 0, minWidth: 0 }}>
+              <label>{t('Filter by role', 'تصفية حسب الدور')}</label>
+              <select className="filter-input" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+                {ROLE_OPTIONS.map((o) => <option key={o.id} value={o.id}>{t(o.en, o.ar)}</option>)}
+              </select>
+            </div>
+            <div className="field" style={{ flex: '1 1 160px', marginBottom: 0, minWidth: 0 }}>
+              <label>{t('Filter by line', 'تصفية حسب المستوى')}</label>
+              <select className="filter-input" value={lineFilter} onChange={(e) => setLineFilter(e.target.value)}>
+                {LINE_OPTIONS.map((o) => <option key={o.id} value={o.id}>{t(o.en, o.ar)}</option>)}
               </select>
             </div>
           </div>
+
+          {(roleFilter !== 'all' || lineFilter !== 'all') && (
+            <div className="card-tight" style={{ background: 'var(--blue-l)', border: '1px solid var(--blue-m)', borderRadius: 'var(--r3)', padding: 10, marginBottom: 10, fontSize: 12 }}>
+              <div className="row" style={{ alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <Icon name="filter" size={12} color="var(--blue-d)" />
+                <span style={{ color: 'var(--blue-d)', fontWeight: 600 }}>
+                  {t('Filtered to:', 'مفلتر إلى:')}
+                </span>
+                {roleFilter !== 'all' && (
+                  <Pill variant={CATEGORY_THEME[roleFilter]?.pillVariant || 'gray'}>
+                    {t(ROLE_OPTIONS.find((o) => o.id === roleFilter)?.en, ROLE_OPTIONS.find((o) => o.id === roleFilter)?.ar)}
+                  </Pill>
+                )}
+                {lineFilter !== 'all' && (
+                  <Pill variant={LINE_THEME[lineFilter]?.variant || 'gray'}>{lineFilter}</Pill>
+                )}
+                <span className="muted" style={{ marginInlineStart: 'auto' }}>
+                  {filtered.length} {t(filtered.length === 1 ? 'match' : 'matches', 'مطابق')}
+                </span>
+                <button type="button" className="btn sm" onClick={() => { setRoleFilter('all'); setLineFilter('all') }}>
+                  {t('Clear filters', 'مسح')}
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="field">
             <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -126,8 +178,8 @@ export default function QuickAssignModal({ course, onClose }) {
                 <tr>
                   <th style={{ width: 32 }}></th>
                   <th>{t('Name', 'الاسم')}</th>
-                  <th>{t('Role', 'الدور')}</th>
-                  <th>{t('Therapy', 'المجال')}</th>
+                  <th>{t('Category', 'الفئة')}</th>
+                  <th>{t('Line', 'المستوى')}</th>
                   <th>{t('Region', 'المنطقة')}</th>
                   <th></th>
                 </tr>
@@ -135,6 +187,8 @@ export default function QuickAssignModal({ course, onClose }) {
               <tbody>
                 {filtered.map((u) => {
                   const has = alreadyAssigned.has(u.id)
+                  const cat = userCategory(u)
+                  const catTheme = CATEGORY_THEME[cat] || CATEGORY_THEME.other
                   return (
                     <tr key={u.id}>
                       <td>
@@ -144,8 +198,8 @@ export default function QuickAssignModal({ course, onClose }) {
                         <div style={{ fontWeight: 600 }}>{u.name}</div>
                         <div className="muted" style={{ fontSize: 10 }}>{u.email}</div>
                       </td>
-                      <td>{u.jobTitle || u.role}</td>
-                      <td>{u.therapyArea || '—'}</td>
+                      <td><Pill variant={catTheme.pillVariant}>{t(catTheme.en, catTheme.ar)}</Pill></td>
+                      <td>{u.line ? <Pill variant={LINE_THEME[u.line]?.variant || 'gray'}>{u.line}</Pill> : '—'}</td>
                       <td>{u.region || '—'}</td>
                       <td>{has && <Pill variant="gray">{t('Already assigned', 'مُعيَّن مسبقًا')}</Pill>}</td>
                     </tr>
