@@ -207,11 +207,37 @@ function parseDelimited(text) {
   return { headers, rows, rawHeaders }
 }
 
+// Business-role → system-role mapper. Accepts loose values like "Rep",
+// "Sales Rep", "Medical Rep", "MR", "MSL", "KAM", "DM", "District Manager",
+// "BU Manager", "Marketing", "L&D", etc. and routes them to the four
+// system roles the LMS recognizes.
+function mapRole(raw) {
+  const v = String(raw || '').toLowerCase().replace(/[\s_\-./]+/g, '').trim()
+  if (!v) return 'learner'
+  // Exact system-role passthrough
+  if (['admin', 'manager', 'learner', 'auditor'].includes(v)) return v
+  // Admin
+  if (/^(admin|administrator|owner|superadmin|landdirector|landmanager)$/.test(v)) return 'admin'
+  // Auditor
+  if (/^(auditor|compliance|qa|qc)$/.test(v)) return 'auditor'
+  // Manager
+  if (/^(.*manager.*|dm|districtmanager|rsm|regionalsalesmanager|nsm|nationalsalesmanager|bumanager|bumanger|busin?essunitmanager|bum|head)$/.test(v)) return 'manager'
+  // Default: everyone else is a learner (reps, MSLs, KAMs, marketing, etc.)
+  return 'learner'
+}
+
+// Line normalizer — accepts "L2", "L 2", "Level 2", "L2(CNS)", "L3 OTC"
+// and returns canonical "L1".."L6". Returns '' for unparseable values.
+function normalizeLine(raw) {
+  const m = String(raw || '').toUpperCase().match(/L\s*([1-6])/)
+  return m ? `L${m[1]}` : ''
+}
+
 function rowToRecord(r) {
   return {
     userId:        r['User ID']      || '',
     name:          r['User Name']    || r['Name']  || '',
-    role:          (r['Role'] || 'learner').toLowerCase(),
+    role:          mapRole(r['Role']),
     email:         r['Email']        || '',
     jobTitle:      r['Job Title']    || '',
     managerName:   r['Manager Name'] || '',
@@ -219,7 +245,7 @@ function rowToRecord(r) {
     country:       r['Country']      || '',
     region:        r['Region']       || '',
     city:          r['City']         || '',
-    line:          (r['Line'] || '').toUpperCase().trim(),
+    line:          normalizeLine(r['Line']),
     phone:         r['Phone']        || '',
   }
 }
