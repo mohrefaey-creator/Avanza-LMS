@@ -28,6 +28,42 @@ export default function ContentTab({ draft, setDraft }) {
   const [fileInfo, setFileInfo] = useState(draft.contentFilename ? { name: draft.contentFilename, size: draft.contentSize || 0 } : null)
   const [ytUrl, setYtUrl] = useState(draft.youtubeUrl || '')
 
+  // Validity helper — admin enters start date + number of valid days, end
+  // date is computed automatically. If the draft already has both dates,
+  // initialize the days input from the existing range.
+  const initialDays = (() => {
+    if (draft.validFrom && draft.validUntil) {
+      const diff = Math.round((new Date(draft.validUntil) - new Date(draft.validFrom)) / 86400000)
+      return diff > 0 ? diff : 365
+    }
+    return 365
+  })()
+  const [validDays, setValidDays] = useState(initialDays)
+
+  const computeEndDate = (start, days) => {
+    if (!start || !days || days < 1) return ''
+    const end = new Date(start)
+    end.setDate(end.getDate() + Number(days))
+    return end.toISOString().slice(0, 10)
+  }
+
+  const handleStartDateChange = (newStart) => {
+    setDraft((d) => ({
+      ...d,
+      validFrom: newStart,
+      validUntil: computeEndDate(newStart, validDays),
+    }))
+  }
+
+  const handleDaysChange = (newDays) => {
+    const n = Math.max(1, Number(newDays) || 0)
+    setValidDays(n)
+    setDraft((d) => ({
+      ...d,
+      validUntil: computeEndDate(d.validFrom, n),
+    }))
+  }
+
   const update = (k, v) => setDraft((d) => ({ ...d, [k]: v }))
   const updateMany = (patch) => setDraft((d) => ({ ...d, ...patch }))
 
@@ -104,10 +140,41 @@ export default function ContentTab({ draft, setDraft }) {
             <input type="number" value={draft.durationMin} onChange={(e) => update('durationMin', +e.target.value)} style={{ width:100 }} />
           </div>
         </Field>
-        <Field label={t('Validity', 'الصلاحية')}>
-          <div className="row">
-            <input type="date" value={draft.validFrom} onChange={(e) => update('validFrom', e.target.value)} />
-            <input type="date" value={draft.validUntil} onChange={(e) => update('validUntil', e.target.value)} />
+        <Field label={t('Validity (start · days · auto end)', 'الصلاحية (البداية · الأيام · النهاية تلقائي)')}>
+          <div className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 140px', minWidth: 0 }}>
+              <span style={{ fontSize: 9, color: 'var(--tx3)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>
+                {t('Start', 'البداية')}
+              </span>
+              <input
+                type="date"
+                value={draft.validFrom || ''}
+                onChange={(e) => handleStartDateChange(e.target.value)}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', flex: '0 0 110px' }}>
+              <span style={{ fontSize: 9, color: 'var(--tx3)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>
+                {t('Valid days', 'عدد الأيام')}
+              </span>
+              <input
+                type="number"
+                min="1"
+                value={validDays}
+                onChange={(e) => handleDaysChange(e.target.value)}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 140px', minWidth: 0 }}>
+              <span style={{ fontSize: 9, color: 'var(--tx3)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>
+                {t('End (auto)', 'النهاية (تلقائي)')}
+              </span>
+              <input
+                type="date"
+                value={draft.validUntil || ''}
+                readOnly
+                tabIndex={-1}
+                style={{ background: 'var(--bg)', color: 'var(--tx2)', cursor: 'not-allowed' }}
+              />
+            </div>
           </div>
         </Field>
         <Field label={t('Mandatory', 'إلزامي')}>
