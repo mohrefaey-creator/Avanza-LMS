@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { mockUsers, mockCourses, mockTeams, mockAssignments, mockCertificates, mockAuditLog, mockLearningPaths } from '../data/index.js'
+import { categorizeUser, getCategoryTheme } from '../lib/category.js'
 
 export const NAV_CONFIG = {
   admin: [
@@ -256,27 +257,25 @@ export function AppProvider({ children }) {
   const addUsers = (records) => {
     const newTeams = []
     const newUsers = []
-    const palette = [
-      { col: '#1D4ED8', bg: '#EEF3FF' },
-      { col: '#15803D', bg: '#DCFCE7' },
-      { col: '#0E7490', bg: '#E0F7FA' },
-      { col: '#7C3AED', bg: '#EDE9FE' },
-      { col: '#B45309', bg: '#FEF3C7' },
-      { col: '#DC2626', bg: '#FEE2E2' },
-    ]
     records.forEach((r, i) => {
       const slug = (r.email || `u${i}`).split('@')[0].replace(/[^a-z0-9]/gi, '')
       const id = `t-${slug}-${Math.random().toString(36).slice(2, 5)}`
       const userId = r.userId || `u-${slug}-${Math.random().toString(36).slice(2, 5)}`
       const init = (r.name || '').split(/\s+/).filter(Boolean).map((s) => s[0]).join('').slice(0, 2).toUpperCase() || '??'
-      const colors = palette[i % palette.length]
+      // Color the avatar based on the business role from the upload (Rep,
+      // DM, BU Manager, Marketing, etc.) — falls back to job title if the
+      // raw role wasn't supplied.
+      const category = categorizeUser(r.roleRaw, r.jobTitle, r.role)
+      const theme = getCategoryTheme(category)
       newTeams.push({
         id, userId,
         name: r.name,
         nameAr: r.nameAr || r.name,
         init,
-        col: colors.col,
-        bg: colors.bg,
+        col: theme.col,
+        bg: theme.bg,
+        category,
+        roleRaw: r.roleRaw || '',
         role: r.jobTitle || r.role || 'Member',
         location: [r.country, r.city || r.region].filter(Boolean).join(' · ') || '—',
         completion: 0,
@@ -301,8 +300,10 @@ export function AppProvider({ children }) {
         name: r.name,
         nameAr: r.nameAr || r.name,
         init,
-        col: colors.col,
-        bg: colors.bg,
+        col: theme.col,
+        bg: theme.bg,
+        category,
+        roleRaw: r.roleRaw || '',
         role: r.role || 'learner',
         scope: r.scope || null,
         managerName: r.managerName,

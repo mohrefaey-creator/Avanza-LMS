@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react'
 import { useApp } from '../../context/AppContext.jsx'
 import TeamCard from '../../components/TeamCard.jsx'
 import Icon from '../../components/Icon.jsx'
+import Pill from '../../components/Pill.jsx'
 import BulkUploadModal, { downloadTemplate } from './BulkUpload.jsx'
+import { CATEGORY_THEME, LINE_THEME } from '../../lib/category.js'
 
 const FILTERS = [
   { id: 'all',           en: 'All',           ar: 'الكل' },
@@ -147,6 +149,28 @@ export default function TeamView() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Color legend — what the avatar tint and Line pill mean */}
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: 'var(--tx2)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.3px' }}>
+            {t('Avatar', 'الصورة')}:
+          </div>
+          {['rep', 'dm', 'bu', 'marketing', 'admin', 'auditor'].map((cat) => {
+            const th = CATEGORY_THEME[cat]
+            return (
+              <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+                <span style={{ width: 18, height: 18, borderRadius: '50%', background: th.bg, color: th.col, fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>●</span>
+                <span style={{ color: 'var(--tx2)' }}>{t(th.en, th.ar)}</span>
+              </div>
+            )
+          })}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: 'var(--tx2)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.3px', marginInlineStart: 12 }}>
+            {t('Line', 'المستوى')}:
+          </div>
+          {Object.entries(LINE_THEME).map(([key, l]) => (
+            <Pill key={key} variant={l.variant}>{key}</Pill>
+          ))}
         </div>
       </div>
 

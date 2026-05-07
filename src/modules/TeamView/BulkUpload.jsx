@@ -234,10 +234,12 @@ function normalizeLine(raw) {
 }
 
 function rowToRecord(r) {
+  const rawRole = r['Role'] || ''
   return {
     userId:        r['User ID']      || '',
     name:          r['User Name']    || r['Name']  || '',
-    role:          mapRole(r['Role']),
+    role:          mapRole(rawRole),
+    roleRaw:       rawRole,                         // preserved for category coloring
     email:         r['Email']        || '',
     jobTitle:      r['Job Title']    || '',
     managerName:   r['Manager Name'] || '',

@@ -1,5 +1,6 @@
 import { useApp } from '../context/AppContext.jsx'
 import Pill from './Pill.jsx'
+import { categorizeUser, getCategoryTheme, getLineVariant } from '../lib/category.js'
 
 const STATUS_MAP = {
   'on-track':      { color: 'var(--green)', bg: '#DCFCE7', en: 'On track',     ar: 'على المسار' },
@@ -12,6 +13,14 @@ const STATUS_MAP = {
 export default function TeamCard({ member, onClick }) {
   const { t } = useApp()
   const s = STATUS_MAP[member.status] || STATUS_MAP['on-track']
+  // Avatar color reflects category (Rep / DM / BU / Marketing / Admin / Auditor).
+  // Use the persisted category if present, otherwise derive from role text
+  // for legacy records that pre-date this feature.
+  const category = member.category || categorizeUser(member.roleRaw, member.role, member.jobTitle)
+  const theme = getCategoryTheme(category)
+  const avatarBg = theme.bg
+  const avatarCol = theme.col
+
   const scoreColor =
     member.avgScore >= 85 ? 'var(--green)' :
     member.avgScore >= 70 ? 'var(--blue)' :
@@ -22,14 +31,16 @@ export default function TeamCard({ member, onClick }) {
     <div className="team-card" onClick={onClick}>
       <div className={`team-card-strip ${s.thick ? 'thick' : ''}`} style={{ background: s.color }} />
       <div className="team-head">
-        <div className="team-avatar" style={{ background: member.bg, color: member.col }}>
+        <div className="team-avatar" style={{ background: avatarBg, color: avatarCol }} title={theme.en}>
           {member.init}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="team-name">
             {t(member.name, member.nameAr || member.name)}
             {member.line && (
-              <span style={{ marginInlineStart: 6 }}><Pill variant="purple">{member.line}</Pill></span>
+              <span style={{ marginInlineStart: 6 }}>
+                <Pill variant={getLineVariant(member.line)}>{member.line}</Pill>
+              </span>
             )}
           </div>
           <div className="team-meta">{member.role} · {member.location}</div>
