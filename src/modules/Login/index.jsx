@@ -9,18 +9,22 @@ const ROLE_LABELS = {
   auditor: { en: 'Auditor', ar: 'المدقق' },
 }
 
+// Production state — only the platform owner is seeded. Each "Demo role"
+// button still pre-fills the owner email; the login() handler matches by
+// email and lands you as admin regardless of which button you click.
+const OWNER_EMAIL = 'moh.refaey@gmail.com'
 const DEMO_EMAILS = {
-  admin: 'admin@avanza.health',
-  manager: 'fadi.mgr@avanza.health',
-  learner: 'omar.rep@avanza.health',
-  auditor: 'auditor@avanza.health',
+  admin:   OWNER_EMAIL,
+  manager: OWNER_EMAIL,
+  learner: OWNER_EMAIL,
+  auditor: OWNER_EMAIL,
 }
 
 export default function Login() {
   const { t, login } = useApp()
-  const [role, setRole] = useState('learner')
-  const [email, setEmail] = useState(DEMO_EMAILS.learner)
-  const [password, setPassword] = useState('demo')
+  const [role, setRole] = useState('admin')
+  const [email, setEmail] = useState(DEMO_EMAILS.admin)
+  const [password, setPassword] = useState('')
 
   const handleRoleClick = (r) => {
     setRole(r)

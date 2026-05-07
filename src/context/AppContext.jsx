@@ -38,7 +38,7 @@ const AppContext = createContext(null)
 
 export function AppProvider({ children }) {
   const [lang, setLang] = useState('en')
-  const [role, setRole] = useState('learner')
+  const [role, setRole] = useState('admin')
   const [user, setUser] = useState(null)
   const [authed, setAuthed] = useState(false)
   const [module, setModule] = useState('dashboard')
@@ -51,14 +51,9 @@ export function AppProvider({ children }) {
   const [learningPaths, setLearningPaths] = useState(mockLearningPaths)
   const [assignments, setAssignments] = useState(mockAssignments)
   const [certificates, setCertificates] = useState(mockCertificates)
-  const [notifications, setNotifications] = useState([
-    { id: 'n-1', icon: 'bell',  type: 'reminder',  read: false, ts: '2026-05-06T08:30:00Z',
-      en: 'KEYNORX — Product Knowledge is due in 2 days', ar: 'كاينوركس — تنتهي مهلتها خلال يومين' },
-    { id: 'n-2', icon: 'award', type: 'cert',      read: false, ts: '2026-04-30T10:14:00Z',
-      en: 'Certificate issued: Diabetes 101 (92%)',       ar: 'صدرت شهادة: السكري ١٠١ (٩٢٪)' },
-    { id: 'n-3', icon: 'sparkle',type: 'recommendation', read: true, ts: '2026-04-28T13:00:00Z',
-      en: 'Recommended for you: ARNI Dosing — Cardiology', ar: 'موصى به: جرعات ARNI' },
-  ])
+  // Notifications are populated at runtime as the platform issues reminders,
+  // certificates, and recommendations. Empty in production at first launch.
+  const [notifications, setNotifications] = useState([])
 
   // ─────────────────────────────────────────────────────────────────────────
   // Assignment / certificate / notification mutations
