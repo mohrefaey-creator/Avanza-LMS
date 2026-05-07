@@ -116,21 +116,37 @@ export default function QuickAssignModal({ course, onClose }) {
             </div>
           </div>
 
-          <div className="row" style={{ gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-            <div className="field" style={{ flex: '1 1 140px', marginBottom: 0, minWidth: 0 }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+              alignItems: 'start',
+              gap: 10,
+              marginBottom: 12,
+            }}
+          >
+            <div className="field" style={{ marginBottom: 0, minWidth: 0 }}>
               <label>{t('Deadline (days)', 'الموعد (أيام)')}</label>
-              <input type="number" className="filter-input" min="1" max="365" value={deadlineDays} onChange={(e) => setDeadlineDays(+e.target.value || 1)} />
+              <input
+                type="number"
+                className="filter-input"
+                min="1"
+                max="365"
+                value={deadlineDays}
+                onChange={(e) => setDeadlineDays(+e.target.value || 1)}
+                style={{ width: '100%' }}
+              />
               <div className="muted" style={{ fontSize: 10, marginTop: 4 }}>{t('Due by', 'موعد الانتهاء')}: {dueLabel}</div>
             </div>
-            <div className="field" style={{ flex: '1 1 160px', marginBottom: 0, minWidth: 0 }}>
+            <div className="field" style={{ marginBottom: 0, minWidth: 0 }}>
               <label>{t('Filter by role', 'تصفية حسب الدور')}</label>
-              <select className="filter-input" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+              <select className="filter-input" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} style={{ width: '100%' }}>
                 {ROLE_OPTIONS.map((o) => <option key={o.id} value={o.id}>{t(o.en, o.ar)}</option>)}
               </select>
             </div>
-            <div className="field" style={{ flex: '1 1 160px', marginBottom: 0, minWidth: 0 }}>
+            <div className="field" style={{ marginBottom: 0, minWidth: 0 }}>
               <label>{t('Filter by line', 'تصفية حسب المستوى')}</label>
-              <select className="filter-input" value={lineFilter} onChange={(e) => setLineFilter(e.target.value)}>
+              <select className="filter-input" value={lineFilter} onChange={(e) => setLineFilter(e.target.value)} style={{ width: '100%' }}>
                 {LINE_OPTIONS.map((o) => <option key={o.id} value={o.id}>{t(o.en, o.ar)}</option>)}
               </select>
             </div>
