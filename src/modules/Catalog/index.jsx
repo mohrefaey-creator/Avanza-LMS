@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext.jsx'
 import Pill from '../../components/Pill.jsx'
 import Icon from '../../components/Icon.jsx'
 import QuickAssignModal from './QuickAssignModal.jsx'
+import { TRAINING_LIBRARY_ROLE_GROUPS } from '../../data/index.js'
 
 const TYPE_PILL = {
   scorm:         { variant: 'blue',   en: 'SCORM',         ar: 'SCORM' },
@@ -15,6 +16,8 @@ const TYPE_PILL = {
   doc:           { variant: 'blue',   en: 'Document',      ar: 'مستند' },
   audio:         { variant: 'teal',   en: 'Audio',         ar: 'صوت' },
   file:          { variant: 'gray',   en: 'File',          ar: 'ملف' },
+  'web-course':  { variant: 'purple', en: 'Web Course',    ar: 'دورة ويب' },
+  'web-article': { variant: 'teal',   en: 'Web Article',   ar: 'مقالة ويب' },
 }
 
 export default function Catalog() {
@@ -23,6 +26,7 @@ export default function Catalog() {
   const [therapy, setTherapy] = useState('all')
   const [type, setType] = useState('all')
   const [status, setStatus] = useState('active')
+  const [roleGroup, setRoleGroup] = useState('all')
   const [assignTarget, setAssignTarget] = useState(null)
   const [toast, setToast] = useState(null)
 
@@ -58,13 +62,15 @@ export default function Catalog() {
       if (status !== 'all' && c.status !== status) return false
       if (therapy !== 'all' && c.therapyArea !== therapy) return false
       if (type !== 'all' && c.type !== type) return false
-      if (q && !(c.title + c.titleAr + c.product).toLowerCase().includes(q.toLowerCase())) return false
+      if (roleGroup === 'library' && !c.roleGroup) return false
+      if (roleGroup !== 'all' && roleGroup !== 'library' && c.roleGroup !== roleGroup) return false
+      if (q && !(c.title + c.titleAr + c.product + (c.provider || '')).toLowerCase().includes(q.toLowerCase())) return false
       return true
     })
-  }, [courses, q, therapy, type, status])
+  }, [courses, q, therapy, type, status, roleGroup])
 
   const therapies = ['all', ...Array.from(new Set(courses.map((c) => c.therapyArea)))]
-  const types = ['all', 'scorm', 'video', 'pdf', 'microlearning', 'simulation', 'youtube', 'ppt', 'doc', 'audio', 'file']
+  const types = ['all', 'scorm', 'video', 'pdf', 'microlearning', 'simulation', 'youtube', 'ppt', 'doc', 'audio', 'file', 'web-course', 'web-article']
 
   return (
     <>
@@ -97,31 +103,52 @@ export default function Catalog() {
             <option value="archived">{t('Archived', 'مؤرشف')}</option>
             <option value="all">{t('All statuses', 'كل الحالات')}</option>
           </select>
+          <select className="filter-input" value={roleGroup} onChange={(e) => setRoleGroup(e.target.value)} title={t('Filter by curated role', 'تصفية حسب الدور')}>
+            <option value="all">{t('All courses', 'كل الدورات')}</option>
+            <option value="library">{t('Curated library (all roles)', 'المكتبة المختارة (كل الأدوار)')}</option>
+            {Object.entries(TRAINING_LIBRARY_ROLE_GROUPS).map(([id, g]) => (
+              <option key={id} value={id}>{g.code} — {t(g.en, g.ar)}</option>
+            ))}
+          </select>
         </div>
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:12 }}>
         {filtered.map((c) => {
           const tp = TYPE_PILL[c.type] || TYPE_PILL.scorm
+          const isLibrary = !!c.roleGroup
+          const groupMeta = isLibrary ? TRAINING_LIBRARY_ROLE_GROUPS[c.roleGroup] : null
           return (
             <div key={c.id} className="card" style={{ display:'flex', flexDirection:'column', gap:8 }}>
               <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
                 <Pill variant={tp.variant}>{t(tp.en, tp.ar)}</Pill>
+                {isLibrary && <Pill variant="blue">{t('Library', 'المكتبة')}</Pill>}
+                {groupMeta && <Pill variant="gray">{groupMeta.code}</Pill>}
                 {c.mandatory && <Pill variant="purple">{t('Mandatory', 'إلزامي')}</Pill>}
                 {c.status === 'archived' && <Pill variant="gray">{t('Archived', 'مؤرشف')}</Pill>}
               </div>
               <div style={{ fontWeight:700, fontSize:14 }}>{t(c.title, c.titleAr || c.title)}</div>
               <div className="muted" style={{ fontSize:11, lineHeight:1.45 }}>{t(c.description, c.descriptionAr || c.description)}</div>
+              {c.provider && (
+                <div style={{ fontSize:11, color:'var(--tx2)' }}>
+                  <strong>{t('Provider', 'المزود')}</strong>: {c.provider}
+                </div>
+              )}
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, fontSize:11, color:'var(--tx2)', marginTop:4 }}>
                 <div><strong>{t('Therapy', 'المجال')}</strong>: {c.therapyArea}</div>
                 <div><strong>{t('Product', 'المنتج')}</strong>: {c.product}</div>
                 <div><strong>{t('Version', 'الإصدار')}</strong>: {c.version}</div>
-                <div><strong>{t('Duration', 'المدة')}</strong>: {c.durationMin} {t('min', 'دقيقة')}</div>
+                <div><strong>{t('Duration', 'المدة')}</strong>: ~{c.durationMin} {t('min', 'دقيقة')}</div>
                 <div><strong>{t('Pass', 'النجاح')}</strong>: {c.passMark}%</div>
                 <div><strong>{t('Valid until', 'صالحة حتى')}</strong>: {c.validUntil}</div>
               </div>
               <div className="row" style={{ marginTop:'auto', gap:6, flexWrap: 'wrap' }}>
                 <button className="btn" onClick={() => { setSelectedCourse(c.id); goto('catalog'); }}>{t('View', 'عرض')}</button>
+                {c.externalUrl && (
+                  <a className="btn" href={c.externalUrl} target="_blank" rel="noopener noreferrer" onClick={() => logAction('library_external_opened', c.id)}>
+                    <Icon name="play" size={11} /> &nbsp; {t('Open source', 'افتح المصدر')}
+                  </a>
+                )}
                 {role === 'admin' && (
                   <>
                     <button className="btn" onClick={() => handleEdit(c.id)}>

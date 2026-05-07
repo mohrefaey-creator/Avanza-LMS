@@ -13,6 +13,8 @@ const TYPE_PILL = {
   doc:           { variant: 'blue',   en: 'Document',      ar: 'مستند' },
   audio:         { variant: 'teal',   en: 'Audio',         ar: 'صوت' },
   file:          { variant: 'gray',   en: 'File',          ar: 'ملف' },
+  'web-course':  { variant: 'purple', en: 'Web Course',    ar: 'دورة ويب' },
+  'web-article': { variant: 'teal',   en: 'Web Article',   ar: 'مقالة ويب' },
 }
 
 export default function CourseRow({ course, assignment }) {

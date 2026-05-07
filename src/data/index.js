@@ -1,5 +1,14 @@
+import { mockCourses as baseCourses, mockLearningPaths, mockAssignments, mockCertificates } from './courses.js'
+import { mockTrainingLibrary, TRAINING_LIBRARY_ROLE_GROUPS } from './trainingLibrary.js'
+
+// The catalog combines the original mock courses with the 120 curated
+// training-library resources (6 commercial roles × 20 topics). Library
+// entries land with `targetRoles: []` so admins assign them per role.
+export const mockCourses = [...baseCourses, ...mockTrainingLibrary]
+export { mockLearningPaths, mockAssignments, mockCertificates }
+export { TRAINING_LIBRARY_ROLE_GROUPS }
+
 export { mockUsers } from './users.js'
-export { mockCourses, mockLearningPaths, mockAssignments, mockCertificates } from './courses.js'
 export { mockTeams, mockActivity, mockScores, mockHoursPerWeek, mockHeatmap } from './teams.js'
 
 export const mockAuditLog = [

@@ -35,8 +35,12 @@ pnpm-debug.log*
 
 # Source artifacts the user keeps in the working dir but shouldn't ship
 Medical_Rep_AI_RolePlay_Training_Manual.docx
+Avanza_LMS_Training_Library.docx
 manual_content.xml
 manual_content.txt
+.lib_content.txt
+.test-body.json
+.env.probe
 User\ Template.txt
 Avanza\ Loggin\ page.png
 Certificate\ template.png
