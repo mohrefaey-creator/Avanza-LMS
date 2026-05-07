@@ -36,11 +36,33 @@ export const NAV_CONFIG = {
 
 const AppContext = createContext(null)
 
+// Persistent-login key. Stored shape: { userId, role, lang, ts }.
+// Read at AppProvider mount to restore the previous session; written on
+// successful login (when "Remember me" is on); cleared on logout.
+const SESSION_KEY = 'avanza-lms-session-v1'
+
+function readPersistedSession(users) {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY)
+    if (!raw) return null
+    const session = JSON.parse(raw)
+    const matched = users.find((u) => u.id === session.userId)
+    if (!matched) return null
+    return { user: matched, role: matched.role, lang: session.lang || 'en' }
+  } catch (_) {
+    return null
+  }
+}
+
 export function AppProvider({ children }) {
-  const [lang, setLang] = useState('en')
-  const [role, setRole] = useState('admin')
-  const [user, setUser] = useState(null)
-  const [authed, setAuthed] = useState(false)
+  // Try to restore a persisted session. If found, the app boots straight
+  // into the dashboard for that user without showing the login screen.
+  const restored = typeof window !== 'undefined' ? readPersistedSession(mockUsers) : null
+
+  const [lang, setLang] = useState(restored?.lang || 'en')
+  const [role, setRole] = useState(restored?.role || 'admin')
+  const [user, setUser] = useState(restored?.user || null)
+  const [authed, setAuthed] = useState(!!restored)
   const [module, setModule] = useState('dashboard')
   const [selectedMember, setSelectedMember] = useState(null)
   const [selectedCourse, setSelectedCourse] = useState(null)
@@ -347,7 +369,7 @@ export function AppProvider({ children }) {
     setSelectedCourse(null)
   }
 
-  const login = (chosenRole, email) => {
+  const login = (chosenRole, email, opts = {}) => {
     const matchedByEmail = email ? mockUsers.find((u) => u.email.toLowerCase() === email.toLowerCase()) : null
     const finalRole = matchedByEmail ? matchedByEmail.role : chosenRole
     const finalUser = matchedByEmail || mockUsers.find((u) => u.role === finalRole) || mockUsers[0]
@@ -355,7 +377,21 @@ export function AppProvider({ children }) {
     setUser(finalUser)
     setAuthed(true)
     setModule(NAV_CONFIG[finalRole][0].id)
-    logAction('user_login', finalUser.id, { method: 'password' })
+    logAction('user_login', finalUser.id, { method: 'password', remember: opts.remember !== false })
+
+    // Persist the session for future visits (default on; opts.remember=false skips)
+    if (opts.remember !== false) {
+      try {
+        localStorage.setItem(SESSION_KEY, JSON.stringify({
+          userId: finalUser.id,
+          role: finalRole,
+          lang,
+          ts: Date.now(),
+        }))
+      } catch (_) {}
+    } else {
+      try { localStorage.removeItem(SESSION_KEY) } catch (_) {}
+    }
   }
 
   const logout = () => {
@@ -363,6 +399,7 @@ export function AppProvider({ children }) {
     setAuthed(false)
     setSelectedMember(null)
     setSelectedCourse(null)
+    try { localStorage.removeItem(SESSION_KEY) } catch (_) {}
   }
 
   const logAction = (action, target, meta = {}) => {

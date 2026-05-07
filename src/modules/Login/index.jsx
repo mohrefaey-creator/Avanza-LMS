@@ -11,10 +11,11 @@ export default function Login() {
   const { t, login } = useApp()
   const [email, setEmail] = useState(OWNER_EMAIL)
   const [password, setPassword] = useState('')
+  const [remember, setRemember] = useState(true)
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    login('admin', email)
+    login('admin', email, { remember })
   }
 
   return (
@@ -47,6 +48,15 @@ export default function Login() {
               <label>{t('Password', 'كلمة المرور')}</label>
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
+
+            <label className="login-remember">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+              />
+              <span>{t('Keep me signed in on this device', 'حافظ على تسجيل الدخول على هذا الجهاز')}</span>
+            </label>
 
             <button type="submit" className="btn primary" style={{ width:'100%', padding:'10px', fontSize:12, marginTop:6 }}>
               {t('Sign in', 'تسجيل الدخول')}

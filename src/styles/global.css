@@ -705,6 +705,24 @@ a:hover { text-decoration: underline; }
   color: var(--blue-d);
 }
 
+.login-remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.85);
+  margin: -4px 0 8px;
+  cursor: pointer;
+  user-select: none;
+}
+.login-remember input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: white;
+  margin: 0;
+  cursor: pointer;
+}
+
 @media (max-width: 1100px) {
   .login-form-pane { width: 380px; padding: 24px; }
   .login-hero-overlay { padding: 32px 36px 40px; margin-left: 380px; }
