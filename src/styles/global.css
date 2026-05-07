@@ -726,7 +726,9 @@ a:hover { text-decoration: underline; }
     padding-top: 16px;
   }
 
-  /* Brand logo — scale to fit the hero on phones; center horizontally */
+  /* Brand logo — scale to fit the hero on phones; center horizontally.
+     Keep mix-blend-mode: multiply (inherited) so the PNG's white background
+     drops out cleanly onto the hero image, exactly like desktop. */
   .login-brand-logo {
     position: relative;
     top: auto;
@@ -734,14 +736,13 @@ a:hover { text-decoration: underline; }
     width: min(86vw, 360px);
     margin: 0 auto;
     display: block;
-    mix-blend-mode: normal;
   }
-  /* Hero image — sit behind the logo as a calm background, top-aligned */
+  /* Hero image fills the hero behind the logo; full opacity so multiply
+     can hide the logo's white background. */
   .login-hero-img {
     top: 0;
     height: 100%;
     object-position: center top;
-    opacity: .85;
   }
 
   .login-form-pane {
