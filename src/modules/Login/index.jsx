@@ -46,32 +46,8 @@ export default function Login() {
             <div className="login-pitch-banner">
               {t(<>The <span>Smart</span> LMS built for Cigalah Team.</>, <>نظام التعلم <span>الذكي</span> المصمم لفريق سيجالا.</>)}
             </div>
-            <div className="login-features">
-              <Feature
-                icon="message"
-                en="Live AI voice roleplay"
-                ar="محاكاة صوتية حية بالذكاء الاصطناعي"
-                sub_en="Rehearse real calls with oncologist, cardiologist & pharmacist personas — mic in, voice out."
-                sub_ar="تدرّب على مكالمات حقيقية مع شخصيات طبيب أورام وقلب وصيدلي — صوت داخل وصوت خارج." />
-              <Feature
-                icon="sparkle"
-                en="From SOP to microlearning in minutes"
-                ar="من إجراء SOP إلى تعلم مصغّر في دقائق"
-                sub_en="Drop a product PDF; Claude returns a 5-min module, scored quiz, and target roles."
-                sub_ar="ارفع ملف منتج؛ يولّد كلود وحدة 5 دقائق واختبارًا ودورًا مستهدفًا." />
-              <Feature
-                icon="users"
-                en="Hierarchical team views"
-                ar="عرض الفرق الهرمي"
-                sub_en="District → Regional → National roll-ups, down to a single rep."
-                sub_ar="من المنطقة إلى الإقليم إلى الوطني، وصولًا إلى المندوب الواحد." />
-              <Feature
-                icon="shield"
-                en="GxP-grade e-signatures"
-                ar="توقيع إلكتروني بمعيار GxP"
-                sub_en="Every completion 21 CFR Part 11 e-signed, time-locked, inspector-ready."
-                sub_ar="كل إتمام موقّع وفق 21 CFR Part 11، مختوم بالوقت، جاهز للتفتيش." />
-            </div>
+            {/* Desktop placement of the feature list — hidden on mobile via CSS */}
+            <FeaturesList desktopOnly />
           </div>
         </section>
 
@@ -113,7 +89,43 @@ export default function Login() {
             </div>
           </form>
         </section>
+
+        {/* Mobile placement of the feature list — hidden on desktop via CSS */}
+        <section className="login-features-mobile-section">
+          <FeaturesList />
+        </section>
       </main>
+    </div>
+  )
+}
+
+function FeaturesList({ desktopOnly = false }) {
+  return (
+    <div className={`login-features ${desktopOnly ? 'desktop-only' : ''}`}>
+      <Feature
+        icon="message"
+        en="Live AI voice roleplay"
+        ar="محاكاة صوتية حية بالذكاء الاصطناعي"
+        sub_en="Rehearse real calls with oncologist, cardiologist & pharmacist personas — mic in, voice out."
+        sub_ar="تدرّب على مكالمات حقيقية مع شخصيات طبيب أورام وقلب وصيدلي — صوت داخل وصوت خارج." />
+      <Feature
+        icon="sparkle"
+        en="From SOP to microlearning in minutes"
+        ar="من إجراء SOP إلى تعلم مصغّر في دقائق"
+        sub_en="Drop a product PDF; Claude returns a 5-min module, scored quiz, and target roles."
+        sub_ar="ارفع ملف منتج؛ يولّد كلود وحدة 5 دقائق واختبارًا ودورًا مستهدفًا." />
+      <Feature
+        icon="users"
+        en="Hierarchical team views"
+        ar="عرض الفرق الهرمي"
+        sub_en="District → Regional → National roll-ups, down to a single rep."
+        sub_ar="من المنطقة إلى الإقليم إلى الوطني، وصولًا إلى المندوب الواحد." />
+      <Feature
+        icon="shield"
+        en="GxP-grade e-signatures"
+        ar="توقيع إلكتروني بمعيار GxP"
+        sub_en="Every completion 21 CFR Part 11 e-signed, time-locked, inspector-ready."
+        sub_ar="كل إتمام موقّع وفق 21 CFR Part 11، مختوم بالوقت، جاهز للتفتيش." />
     </div>
   )
 }
