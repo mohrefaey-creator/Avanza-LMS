@@ -42,6 +42,11 @@ const AppContext = createContext(null)
 // successful login (when "Remember me" is on); cleared on logout.
 const SESSION_KEY = 'avanza-lms-session-v1'
 
+// Persistent app data — bulk-uploaded users, assignments, certificates,
+// learning paths, and audit log. Without this, refreshing the page wipes
+// any imports because state lives only in React useState.
+const STATE_KEY = 'avanza-lms-state-v1'
+
 function readPersistedSession(users) {
   try {
     const raw = localStorage.getItem(SESSION_KEY)
@@ -55,10 +60,27 @@ function readPersistedSession(users) {
   }
 }
 
+function readPersistedState() {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(STATE_KEY)
+    if (!raw) return null
+    return JSON.parse(raw)
+  } catch (_) {
+    return null
+  }
+}
+
 export function AppProvider({ children }) {
+  // Restore previously-persisted app state (bulk-uploaded users, assignments,
+  // certificates, audit log, etc.) so a refresh doesn't wipe the org.
+  const persisted = readPersistedState()
+
   // Try to restore a persisted session. If found, the app boots straight
   // into the dashboard for that user without showing the login screen.
-  const restored = typeof window !== 'undefined' ? readPersistedSession(mockUsers) : null
+  // Resolution searches both the persisted users (if any) and the seed list.
+  const userPool = persisted?.users?.length ? persisted.users : mockUsers
+  const restored = typeof window !== 'undefined' ? readPersistedSession(userPool) : null
 
   const [lang, setLang] = useState(restored?.lang || 'en')
   const [role, setRole] = useState(restored?.role || 'admin')
@@ -68,16 +90,28 @@ export function AppProvider({ children }) {
   const [selectedMember, setSelectedMember] = useState(null)
   const [selectedCourse, setSelectedCourse] = useState(null)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
-  const [auditLog, setAuditLog] = useState(mockAuditLog)
-  const [courses, setCourses] = useState(mockCourses)
-  const [teams, setTeams] = useState(mockTeams)
-  const [users, setUsers] = useState(mockUsers)
-  const [learningPaths, setLearningPaths] = useState(mockLearningPaths)
-  const [assignments, setAssignments] = useState(mockAssignments)
-  const [certificates, setCertificates] = useState(mockCertificates)
-  // Notifications are populated at runtime as the platform issues reminders,
-  // certificates, and recommendations. Empty in production at first launch.
-  const [notifications, setNotifications] = useState([])
+  const [auditLog, setAuditLog] = useState(persisted?.auditLog || mockAuditLog)
+  const [courses, setCourses] = useState(mockCourses)  // always fresh from code (library may update)
+  const [teams, setTeams] = useState(persisted?.teams || mockTeams)
+  const [users, setUsers] = useState(persisted?.users || mockUsers)
+  const [learningPaths, setLearningPaths] = useState(persisted?.learningPaths || mockLearningPaths)
+  const [assignments, setAssignments] = useState(persisted?.assignments || mockAssignments)
+  const [certificates, setCertificates] = useState(persisted?.certificates || mockCertificates)
+  const [notifications, setNotifications] = useState(persisted?.notifications || [])
+
+  // Save the mutable parts of the app state to localStorage whenever they
+  // change. Courses are intentionally NOT persisted — they're re-merged from
+  // the bundled trainingLibrary on each load so library updates take effect.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      localStorage.setItem(STATE_KEY, JSON.stringify({
+        users, teams, assignments, certificates, learningPaths, auditLog, notifications,
+      }))
+    } catch (_) {
+      // localStorage full or disabled — silently ignore
+    }
+  }, [users, teams, assignments, certificates, learningPaths, auditLog, notifications])
 
   // ─────────────────────────────────────────────────────────────────────────
   // Assignment / certificate / notification mutations
