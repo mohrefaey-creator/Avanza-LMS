@@ -72,6 +72,72 @@ export default function Catalog() {
   const therapies = ['all', ...Array.from(new Set(courses.map((c) => c.therapyArea)))]
   const types = ['all', 'scorm', 'video', 'pdf', 'microlearning', 'simulation', 'youtube', 'ppt', 'doc', 'audio', 'file', 'web-course', 'web-article']
 
+  // Render a single course card. Defined inline so it has access to state
+  // (myAssignments) and handlers (setAssignTarget, handleEnroll, etc.).
+  const renderCard = (c) => {
+    const tp = TYPE_PILL[c.type] || TYPE_PILL.scorm
+    const isLibrary = !!c.roleGroup
+    const groupMeta = isLibrary ? TRAINING_LIBRARY_ROLE_GROUPS[c.roleGroup] : null
+    return (
+      <div key={c.id} className="card" style={{ display:'flex', flexDirection:'column', gap:8 }}>
+        <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+          <Pill variant={tp.variant}>{t(tp.en, tp.ar)}</Pill>
+          {isLibrary && <Pill variant="blue">{t('Library', 'المكتبة')}</Pill>}
+          {groupMeta && <Pill variant="gray">{groupMeta.code}</Pill>}
+          {c.mandatory && <Pill variant="purple">{t('Mandatory', 'إلزامي')}</Pill>}
+          {c.status === 'archived' && <Pill variant="gray">{t('Archived', 'مؤرشف')}</Pill>}
+        </div>
+        <div style={{ fontWeight:700, fontSize:14 }}>{t(c.title, c.titleAr || c.title)}</div>
+        <div className="muted" style={{ fontSize:11, lineHeight:1.45 }}>{t(c.description, c.descriptionAr || c.description)}</div>
+        {c.provider && (
+          <div style={{ fontSize:11, color:'var(--tx2)' }}>
+            <strong>{t('Provider', 'المزود')}</strong>: {c.provider}
+          </div>
+        )}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, fontSize:11, color:'var(--tx2)', marginTop:4 }}>
+          <div><strong>{t('Therapy', 'المجال')}</strong>: {c.therapyArea}</div>
+          <div><strong>{t('Product', 'المنتج')}</strong>: {c.product}</div>
+          <div><strong>{t('Version', 'الإصدار')}</strong>: {c.version}</div>
+          <div><strong>{t('Duration', 'المدة')}</strong>: ~{c.durationMin} {t('min', 'دقيقة')}</div>
+          <div><strong>{t('Pass', 'النجاح')}</strong>: {c.passMark}%</div>
+          <div><strong>{t('Valid until', 'صالحة حتى')}</strong>: {c.validUntil}</div>
+        </div>
+        <div className="row" style={{ marginTop:'auto', gap:6, flexWrap: 'wrap' }}>
+          <button className="btn" onClick={() => { setSelectedCourse(c.id); goto('catalog'); }}>{t('View', 'عرض')}</button>
+          {c.externalUrl && (
+            <a className="btn" href={c.externalUrl} target="_blank" rel="noopener noreferrer" onClick={() => logAction('library_external_opened', c.id)}>
+              <Icon name="play" size={11} /> &nbsp; {t('Open source', 'افتح المصدر')}
+            </a>
+          )}
+          {role === 'admin' && (
+            <>
+              <button className="btn" onClick={() => handleEdit(c.id)}>
+                <Icon name="edit" size={11} /> &nbsp; {t('Edit', 'تعديل')}
+              </button>
+              <button className="btn primary" onClick={() => setAssignTarget(c)}>
+                <Icon name="check" size={11} /> &nbsp; {t('Assign', 'تعيين')}
+              </button>
+            </>
+          )}
+          {role === 'manager' && (
+            <button className="btn primary" onClick={() => setAssignTarget(c)}>
+              <Icon name="check" size={11} /> &nbsp; {t('Assign to team', 'تعيين للفريق')}
+            </button>
+          )}
+          {role === 'learner' && (
+            myAssignments.has(c.id)
+              ? <button className="btn primary" onClick={() => handleOpenInPlayer(c)}>
+                  <Icon name="play" size={11} /> &nbsp; {t('Open in player', 'افتح في المشغل')}
+                </button>
+              : <button className="btn primary" onClick={() => handleEnroll(c)}>
+                  <Icon name="plus" size={11} /> &nbsp; {t('Add to my plan', 'أضف إلى خطتي')}
+                </button>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
       <div className="page-head">
@@ -113,71 +179,21 @@ export default function Catalog() {
         </div>
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:12 }}>
-        {filtered.map((c) => {
-          const tp = TYPE_PILL[c.type] || TYPE_PILL.scorm
-          const isLibrary = !!c.roleGroup
-          const groupMeta = isLibrary ? TRAINING_LIBRARY_ROLE_GROUPS[c.roleGroup] : null
-          return (
-            <div key={c.id} className="card" style={{ display:'flex', flexDirection:'column', gap:8 }}>
-              <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-                <Pill variant={tp.variant}>{t(tp.en, tp.ar)}</Pill>
-                {isLibrary && <Pill variant="blue">{t('Library', 'المكتبة')}</Pill>}
-                {groupMeta && <Pill variant="gray">{groupMeta.code}</Pill>}
-                {c.mandatory && <Pill variant="purple">{t('Mandatory', 'إلزامي')}</Pill>}
-                {c.status === 'archived' && <Pill variant="gray">{t('Archived', 'مؤرشف')}</Pill>}
-              </div>
-              <div style={{ fontWeight:700, fontSize:14 }}>{t(c.title, c.titleAr || c.title)}</div>
-              <div className="muted" style={{ fontSize:11, lineHeight:1.45 }}>{t(c.description, c.descriptionAr || c.description)}</div>
-              {c.provider && (
-                <div style={{ fontSize:11, color:'var(--tx2)' }}>
-                  <strong>{t('Provider', 'المزود')}</strong>: {c.provider}
-                </div>
-              )}
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, fontSize:11, color:'var(--tx2)', marginTop:4 }}>
-                <div><strong>{t('Therapy', 'المجال')}</strong>: {c.therapyArea}</div>
-                <div><strong>{t('Product', 'المنتج')}</strong>: {c.product}</div>
-                <div><strong>{t('Version', 'الإصدار')}</strong>: {c.version}</div>
-                <div><strong>{t('Duration', 'المدة')}</strong>: ~{c.durationMin} {t('min', 'دقيقة')}</div>
-                <div><strong>{t('Pass', 'النجاح')}</strong>: {c.passMark}%</div>
-                <div><strong>{t('Valid until', 'صالحة حتى')}</strong>: {c.validUntil}</div>
-              </div>
-              <div className="row" style={{ marginTop:'auto', gap:6, flexWrap: 'wrap' }}>
-                <button className="btn" onClick={() => { setSelectedCourse(c.id); goto('catalog'); }}>{t('View', 'عرض')}</button>
-                {c.externalUrl && (
-                  <a className="btn" href={c.externalUrl} target="_blank" rel="noopener noreferrer" onClick={() => logAction('library_external_opened', c.id)}>
-                    <Icon name="play" size={11} /> &nbsp; {t('Open source', 'افتح المصدر')}
-                  </a>
-                )}
-                {role === 'admin' && (
-                  <>
-                    <button className="btn" onClick={() => handleEdit(c.id)}>
-                      <Icon name="edit" size={11} /> &nbsp; {t('Edit', 'تعديل')}
-                    </button>
-                    <button className="btn primary" onClick={() => setAssignTarget(c)}>
-                      <Icon name="check" size={11} /> &nbsp; {t('Assign', 'تعيين')}
-                    </button>
-                  </>
-                )}
-                {role === 'manager' && (
-                  <button className="btn primary" onClick={() => setAssignTarget(c)}>
-                    <Icon name="check" size={11} /> &nbsp; {t('Assign to team', 'تعيين للفريق')}
-                  </button>
-                )}
-                {role === 'learner' && (
-                  myAssignments.has(c.id)
-                    ? <button className="btn primary" onClick={() => handleOpenInPlayer(c)}>
-                        <Icon name="play" size={11} /> &nbsp; {t('Open in player', 'افتح في المشغل')}
-                      </button>
-                    : <button className="btn primary" onClick={() => handleEnroll(c)}>
-                        <Icon name="plus" size={11} /> &nbsp; {t('Add to my plan', 'أضف إلى خطتي')}
-                      </button>
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
+      {/* Admin sees courses grouped into per-role sections (when no specific
+          role filter is active). Other roles see a flat grid. */}
+      {role === 'admin' && (roleGroup === 'all' || roleGroup === 'library')
+        ? <GroupedCatalog
+            courses={filtered}
+            t={t}
+            renderCard={(c) => renderCard(c)}
+            includeUngrouped={roleGroup === 'all'}
+          />
+        : (
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:12 }}>
+            {filtered.map((c) => renderCard(c))}
+          </div>
+        )
+      }
 
       {filtered.length === 0 && (
         <div className="empty-state">
@@ -215,5 +231,74 @@ export default function Catalog() {
         </div>
       )}
     </>
+  )
+}
+
+// Renders the catalog as collapsible per-role sections. Used for the admin
+// view so they can see their full course library organized by which
+// commercial role each course was curated for.
+function GroupedCatalog({ courses, t, renderCard, includeUngrouped }) {
+  const order = ['mr', 'dm', 'pm', 'bum', 'kam', 'sm']
+  const buckets = {}
+  for (const id of order) buckets[id] = []
+  const ungrouped = []
+
+  for (const c of courses) {
+    if (c.roleGroup && buckets[c.roleGroup]) buckets[c.roleGroup].push(c)
+    else ungrouped.push(c)
+  }
+
+  const sections = order
+    .map((id) => ({ id, meta: TRAINING_LIBRARY_ROLE_GROUPS[id], courses: buckets[id] }))
+    .filter((s) => s.courses.length > 0)
+
+  if (includeUngrouped && ungrouped.length > 0) {
+    sections.push({
+      id: 'general',
+      meta: { code: 'GEN', en: 'General / unassigned', ar: 'عام / غير مصنّف' },
+      courses: ungrouped,
+    })
+  }
+
+  if (sections.length === 0) return null
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+      {sections.map((s) => (
+        <section key={s.id}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'baseline',
+            justifyContent: 'space-between',
+            gap: 8,
+            marginBottom: 10,
+            paddingBottom: 6,
+            borderBottom: '2px solid var(--border)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{
+                background: 'var(--blue)',
+                color: 'white',
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: '.4px',
+                padding: '3px 8px',
+                borderRadius: 999,
+              }}>
+                {s.meta.code}
+              </span>
+              <h2 style={{ margin: 0, fontSize: 15 }}>{t(s.meta.en, s.meta.ar)}</h2>
+            </div>
+            <span className="muted" style={{ fontSize: 11, whiteSpace: 'nowrap' }}>
+              {s.courses.length} {t(s.courses.length === 1 ? 'course' : 'courses', 'دورة')}
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+            {s.courses.map((c) => renderCard(c))}
+          </div>
+        </section>
+      ))}
+    </div>
   )
 }
