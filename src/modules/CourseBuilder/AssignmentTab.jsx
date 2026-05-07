@@ -75,7 +75,7 @@ export default function AssignmentTab({ draft }) {
           <Pill variant="amber">{t('30-day deadline', 'موعد 30 يومًا')}</Pill>
           {trigger !== 'manual' && <Pill variant="purple">{trigger}</Pill>}
         </div>
-        <div style={{ maxHeight: 300, overflowY:'auto', border: '1px solid var(--border)', borderRadius: 'var(--r3)' }}>
+        <div style={{ maxHeight: 300, overflowY:'auto', overflowX: 'auto', WebkitOverflowScrolling: 'touch', border: '1px solid var(--border)', borderRadius: 'var(--r3)' }}>
           <table className="tbl">
             <thead>
               <tr>

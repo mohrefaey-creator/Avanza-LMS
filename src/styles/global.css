@@ -796,13 +796,18 @@ a:hover { text-decoration: underline; }
   display: flex; justify-content: flex-end; gap: 8px;
 }
 
-/* Heatmap */
+/* Heatmap — daily activity grid, 7 rows × N columns */
 .heatmap {
   display: grid;
   grid-auto-flow: column;
   grid-template-rows: repeat(7, 1fr);
+  /* Each column has a comfortable minimum so cells stay tap-able */
+  grid-auto-columns: minmax(14px, 1fr);
   gap: 3px;
   width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;  /* reserve space for the scrollbar */
 }
 .heatmap .cell {
   aspect-ratio: 1;
@@ -1101,6 +1106,62 @@ a:hover { text-decoration: underline; }
   50%      { transform: scale(1.4); opacity: .55; }
 }
 
+/* Audit log — dual layout (table on desktop, stacked cards on mobile) */
+.audit-card-only { display: none; }
+.audit-tbl-only  { display: block; }
+
+.audit-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r3);
+  padding: 12px;
+  margin-bottom: 10px;
+  background: var(--white);
+}
+.audit-card:last-child { margin-bottom: 0; }
+.audit-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.audit-card-time {
+  font-size: 11px;
+  color: var(--tx3);
+  white-space: nowrap;
+}
+.audit-card-row {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 8px;
+  padding: 4px 0;
+  align-items: start;
+  font-size: 12px;
+}
+.audit-card-key {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--tx3);
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  padding-top: 3px;
+}
+.audit-card-val {
+  word-break: break-all;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.audit-card-val.mono {
+  font-family: monospace;
+  font-size: 11px;
+}
+.audit-card-val.mono.small { font-size: 10px; color: var(--tx2); }
+
 /* ──────────────────────────────────────────────────────────────────────────
    Mobile (≤ 768px) — drawer pattern, single-column layouts, touch targets
    ────────────────────────────────────────────────────────────────────────── */
@@ -1226,7 +1287,11 @@ a:hover { text-decoration: underline; }
     margin: 0 -12px;  /* bleed to viewport edges */
     padding: 0 12px;
   }
-  .tbl { min-width: 640px; }
+  .tbl-wrap .tbl { min-width: 640px; }
+
+  /* Audit log: hide wide table, show stacked cards */
+  .audit-tbl-only { display: none !important; }
+  .audit-card-only { display: block !important; }
 
   /* Cards / forms — full-bleed feel */
   .card { padding: 12px; border-radius: 10px; }

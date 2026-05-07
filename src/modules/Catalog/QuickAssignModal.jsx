@@ -120,7 +120,7 @@ export default function QuickAssignModal({ course, onClose }) {
             <input className="filter-input" style={{ width: '100%' }} placeholder={t('Search name, email, title, or therapy area', 'ابحث في الاسم والبريد والمسمى والمجال')} value={filter} onChange={(e) => setFilter(e.target.value)} />
           </div>
 
-          <div style={{ maxHeight: 320, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--r3)' }}>
+          <div style={{ maxHeight: 320, overflowY: 'auto', overflowX: 'auto', WebkitOverflowScrolling: 'touch', border: '1px solid var(--border)', borderRadius: 'var(--r3)' }}>
             <table className="tbl">
               <thead>
                 <tr>

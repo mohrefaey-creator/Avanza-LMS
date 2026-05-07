@@ -92,7 +92,7 @@ export default function Assignments() {
 
       <div className="card mt-16">
         <h2>{t('All active assignments', 'كل التعيينات الحالية')}</h2>
-        <table className="tbl">
+        <div className="tbl-wrap"><table className="tbl">
           <thead>
             <tr>
               <th>{t('User', 'المستخدم')}</th>
@@ -121,7 +121,7 @@ export default function Assignments() {
               )
             })}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </>
   )

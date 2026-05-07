@@ -99,34 +99,74 @@ export default function AuditLog() {
       </div>
 
       <div className="card">
-        <table className="tbl">
-          <thead>
-            <tr>
-              <th>{t('When', 'الوقت')}</th>
-              <th>{t('User', 'المستخدم')}</th>
-              <th>{t('Role', 'الدور')}</th>
-              <th>{t('Action', 'الإجراء')}</th>
-              <th>{t('Target', 'الهدف')}</th>
-              <th>{t('Meta', 'بيانات')}</th>
-              <th>IP</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((e) => (
-              <tr key={e.id}>
-                <td style={{ whiteSpace: 'nowrap' }}>{new Date(e.timestamp).toLocaleString()}</td>
-                <td>{e.userName}</td>
-                <td><Pill variant="blue">{e.role}</Pill></td>
-                <td><Pill variant={ACTION_VARIANTS[e.action] || 'gray'}>{e.action}</Pill></td>
-                <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{e.target}</td>
-                <td style={{ fontFamily: 'monospace', fontSize: 10, color: 'var(--tx2)', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {e.meta && Object.keys(e.meta).length ? JSON.stringify(e.meta) : '—'}
-                </td>
-                <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{e.ip}</td>
+        {/* Desktop / tablet view: wide horizontal table with all columns. */}
+        <div className="tbl-wrap audit-tbl-only">
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>{t('When', 'الوقت')}</th>
+                <th>{t('User', 'المستخدم')}</th>
+                <th>{t('Role', 'الدور')}</th>
+                <th>{t('Action', 'الإجراء')}</th>
+                <th>{t('Target', 'الهدف')}</th>
+                <th>{t('Meta', 'بيانات')}</th>
+                <th>IP</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.map((e) => (
+                <tr key={e.id}>
+                  <td style={{ whiteSpace: 'nowrap' }}>{new Date(e.timestamp).toLocaleString()}</td>
+                  <td>{e.userName}</td>
+                  <td><Pill variant="blue">{e.role}</Pill></td>
+                  <td><Pill variant={ACTION_VARIANTS[e.action] || 'gray'}>{e.action}</Pill></td>
+                  <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{e.target}</td>
+                  <td style={{ fontFamily: 'monospace', fontSize: 10, color: 'var(--tx2)', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {e.meta && Object.keys(e.meta).length ? JSON.stringify(e.meta) : '—'}
+                  </td>
+                  <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{e.ip}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile view: stacked card per audit entry — no horizontal scroll. */}
+        <div className="audit-card-only">
+          {filtered.length === 0 && (
+            <div className="muted" style={{ fontSize: 12, textAlign: 'center', padding: '24px 12px' }}>
+              {t('No audit entries match the current filters.', 'لا توجد سجلات مطابقة للمرشحات الحالية.')}
+            </div>
+          )}
+          {filtered.map((e) => (
+            <div key={e.id} className="audit-card">
+              <div className="audit-card-head">
+                <Pill variant={ACTION_VARIANTS[e.action] || 'gray'}>{e.action}</Pill>
+                <span className="audit-card-time">{new Date(e.timestamp).toLocaleString()}</span>
+              </div>
+              <div className="audit-card-row">
+                <span className="audit-card-key">{t('User', 'المستخدم')}</span>
+                <span className="audit-card-val">
+                  {e.userName} <Pill variant="blue">{e.role}</Pill>
+                </span>
+              </div>
+              <div className="audit-card-row">
+                <span className="audit-card-key">{t('Target', 'الهدف')}</span>
+                <span className="audit-card-val mono">{e.target || '—'}</span>
+              </div>
+              {e.meta && Object.keys(e.meta).length > 0 && (
+                <div className="audit-card-row">
+                  <span className="audit-card-key">{t('Meta', 'بيانات')}</span>
+                  <span className="audit-card-val mono small">{JSON.stringify(e.meta)}</span>
+                </div>
+              )}
+              <div className="audit-card-row">
+                <span className="audit-card-key">IP</span>
+                <span className="audit-card-val mono">{e.ip || '—'}</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="muted mt-16" style={{ fontSize: 11 }}>

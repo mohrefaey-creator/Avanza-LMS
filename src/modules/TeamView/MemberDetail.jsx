@@ -143,33 +143,35 @@ function ActivityTab({ activity }) {
 function CoursesTab({ assignments, courses }) {
   const { t } = useApp()
   return (
-    <table className="tbl">
-      <thead>
-        <tr>
-          <th>{t('Course', 'الدورة')}</th>
-          <th>{t('Status', 'الحالة')}</th>
-          <th>{t('Progress', 'التقدم')}</th>
-          <th>{t('Score', 'الدرجة')}</th>
-          <th>{t('Completed', 'تاريخ الإنجاز')}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {assignments.map((a) => {
-          const c = courses.find((x) => x.id === a.courseId)
-          if (!c) return null
-          const variant = a.status === 'completed' ? 'green' : a.status === 'in-progress' ? 'blue' : a.status === 'overdue' ? 'red' : 'gray'
-          return (
-            <tr key={a.id}>
-              <td>{t(c.title, c.titleAr)}</td>
-              <td><Pill variant={variant}>{a.status}</Pill></td>
-              <td style={{ minWidth: 140 }}><ProgressBar pct={a.progress} /></td>
-              <td>{a.finalScore != null ? `${a.finalScore}%` : '—'}</td>
-              <td>{a.completedAt || '—'}</td>
-            </tr>
-          )
-        })}
-      </tbody>
-    </table>
+    <div className="tbl-wrap">
+      <table className="tbl">
+        <thead>
+          <tr>
+            <th>{t('Course', 'الدورة')}</th>
+            <th>{t('Status', 'الحالة')}</th>
+            <th>{t('Progress', 'التقدم')}</th>
+            <th>{t('Score', 'الدرجة')}</th>
+            <th>{t('Completed', 'تاريخ الإنجاز')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {assignments.map((a) => {
+            const c = courses.find((x) => x.id === a.courseId)
+            if (!c) return null
+            const variant = a.status === 'completed' ? 'green' : a.status === 'in-progress' ? 'blue' : a.status === 'overdue' ? 'red' : 'gray'
+            return (
+              <tr key={a.id}>
+                <td>{t(c.title, c.titleAr)}</td>
+                <td><Pill variant={variant}>{a.status}</Pill></td>
+                <td style={{ minWidth: 140 }}><ProgressBar pct={a.progress} /></td>
+                <td>{a.finalScore != null ? `${a.finalScore}%` : '—'}</td>
+                <td>{a.completedAt || '—'}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
   )
 }
 
@@ -224,32 +226,34 @@ function ComplianceTab({ certs, courses }) {
   return (
     <div>
       <h3>{t('Mandatory certifications', 'الشهادات الإلزامية')}</h3>
-      <table className="tbl">
-        <thead>
-          <tr>
-            <th>{t('Course', 'الدورة')}</th>
-            <th>{t('Issued', 'أُصدرت')}</th>
-            <th>{t('Expires', 'تنتهي')}</th>
-            <th>{t('Status', 'الحالة')}</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {certs.map((c) => {
-            const course = courses.find((x) => x.id === c.courseId)
-            const variant = c.status === 'active' ? 'green' : c.status === 'expiring' ? 'amber' : c.status === 'expired' ? 'red' : 'gray'
-            return (
-              <tr key={c.id}>
-                <td>{course ? t(course.title, course.titleAr) : c.courseId}</td>
-                <td>{c.issuedAt}</td>
-                <td>{c.expiresAt}</td>
-                <td><Pill variant={variant}>{c.status}</Pill></td>
-                <td><button className="btn sm" onClick={() => logAction('cert_viewed', c.id)}>{t('Open', 'فتح')}</button></td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+      <div className="tbl-wrap">
+        <table className="tbl">
+          <thead>
+            <tr>
+              <th>{t('Course', 'الدورة')}</th>
+              <th>{t('Issued', 'أُصدرت')}</th>
+              <th>{t('Expires', 'تنتهي')}</th>
+              <th>{t('Status', 'الحالة')}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {certs.map((c) => {
+              const course = courses.find((x) => x.id === c.courseId)
+              const variant = c.status === 'active' ? 'green' : c.status === 'expiring' ? 'amber' : c.status === 'expired' ? 'red' : 'gray'
+              return (
+                <tr key={c.id}>
+                  <td>{course ? t(course.title, course.titleAr) : c.courseId}</td>
+                  <td>{c.issuedAt}</td>
+                  <td>{c.expiresAt}</td>
+                  <td><Pill variant={variant}>{c.status}</Pill></td>
+                  <td><button className="btn sm" onClick={() => logAction('cert_viewed', c.id)}>{t('Open', 'فتح')}</button></td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
 
       <h3 style={{ marginTop: 18 }}>{t('E-signature audit trail', 'سجل التوقيعات الإلكترونية')}</h3>
       <div style={{ borderTop: '1px solid var(--border)' }}>

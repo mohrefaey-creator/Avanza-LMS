@@ -153,28 +153,30 @@ export default function Reports() {
       <div className="two-col">
         <div className="card">
           <h2>{t('Region performance', 'أداء المناطق')}</h2>
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>{t('Region', 'المنطقة')}</th>
-                <th>{t('Completion', 'الإنجاز')}</th>
-                <th>{t('Avg score', 'الدرجة')}</th>
-                <th>{t('Hours/wk', 'ساعات/أسبوع')}</th>
-                <th>{t('At risk', 'في خطر')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {regions.map((r) => (
-                <tr key={r.name}>
-                  <td>{t(r.name, r.nameAr)}</td>
-                  <td>{r.completion}%</td>
-                  <td>{r.score}%</td>
-                  <td>{r.hours}</td>
-                  <td><Pill variant={r.risk > 0 ? 'red' : 'green'}>{r.risk}</Pill></td>
+          <div className="tbl-wrap">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>{t('Region', 'المنطقة')}</th>
+                  <th>{t('Completion', 'الإنجاز')}</th>
+                  <th>{t('Avg score', 'الدرجة')}</th>
+                  <th>{t('Hours/wk', 'ساعات/أسبوع')}</th>
+                  <th>{t('At risk', 'في خطر')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {regions.map((r) => (
+                  <tr key={r.name}>
+                    <td>{t(r.name, r.nameAr)}</td>
+                    <td>{r.completion}%</td>
+                    <td>{r.score}%</td>
+                    <td>{r.hours}</td>
+                    <td><Pill variant={r.risk > 0 ? 'red' : 'green'}>{r.risk}</Pill></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="card">
