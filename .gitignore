@@ -1,0 +1,47 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build output
+dist
+dist-ssr
+build
+.vite
+.cache
+
+# Vercel
+.vercel
+
+# Local env files — NEVER commit secrets
+.env
+.env.local
+.env.*.local
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+*.swp
+*.swo
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Source artifacts the user keeps in the working dir but shouldn't ship
+Medical_Rep_AI_RolePlay_Training_Manual.docx
+manual_content.xml
+manual_content.txt
+User\ Template.txt
+Avanza\ Loggin\ page.png
+Certificate\ template.png
+Logo\ LMS.png
+
+# Claude Code project state
+.claude/
+SKILL*.md

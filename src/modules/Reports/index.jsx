@@ -1,0 +1,218 @@
+import { useMemo, useState } from 'react'
+import { useApp } from '../../context/AppContext.jsx'
+import StatCard from '../../components/StatCard.jsx'
+import Pill from '../../components/Pill.jsx'
+import Icon from '../../components/Icon.jsx'
+
+const ALL_REGIONS = [
+  { name: 'Western',  nameAr: 'الغربية',  completion: 76, score: 84, hours: 38, risk: 1, therapy: 'Oncology' },
+  { name: 'Eastern',  nameAr: 'الشرقية',  completion: 82, score: 88, hours: 42, risk: 0, therapy: 'Cardiology' },
+  { name: 'Northern', nameAr: 'الشمالية', completion: 64, score: 79, hours: 32, risk: 3, therapy: 'Diabetes' },
+  { name: 'Southern', nameAr: 'الجنوبية', completion: 88, score: 91, hours: 45, risk: 0, therapy: 'Oncology' },
+]
+
+const ALL_RISKS = [
+  { user: 'Khaled Younis',  userAr: 'خالد يونس',  risk: 'High',   riskAr: 'مرتفع', prob: 78, region: 'Western',  therapy: 'Oncology',   en: 'Likely to miss certification deadline', ar: 'احتمال تأخره عن موعد الشهادة' },
+  { user: 'Adam Mostafa',   userAr: 'آدم مصطفى',  risk: 'Medium', riskAr: 'متوسط', prob: 62, region: 'Northern', therapy: 'Diabetes',   en: 'Knowledge decay on PV refresher',         ar: 'تراجع المعرفة في تدريب اليقظة' },
+  { user: 'Lina Halabi',    userAr: 'لينا حلبي',  risk: 'Medium', riskAr: 'متوسط', prob: 55, region: 'Western',  therapy: 'Oncology',   en: 'Onboarding pace below cohort average',    ar: 'وتيرة التأهيل أقل من المتوسط' },
+]
+
+const PERIODS = [
+  { id: 'q2-2026', en: 'Q2 2026', ar: 'الربع 2 2026' },
+  { id: 'q1-2026', en: 'Q1 2026', ar: 'الربع 1 2026' },
+  { id: '2026-ytd', en: '2026 YTD', ar: 'منذ بداية 2026' },
+  { id: '2025',    en: '2025 full year', ar: 'كامل 2025' },
+]
+
+export default function Reports() {
+  const { t, role, teams, logAction } = useApp()
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [filters, setFilters] = useState({
+    region: 'all',
+    therapy: 'all',
+    riskLevel: 'all',
+    period: 'q2-2026',
+  })
+
+  const regions = useMemo(() => ALL_REGIONS.filter((r) =>
+    (filters.region === 'all' || r.name === filters.region) &&
+    (filters.therapy === 'all' || r.therapy === filters.therapy)
+  ), [filters])
+
+  const predictiveRisks = useMemo(() => ALL_RISKS.filter((r) =>
+    (filters.region === 'all'    || r.region === filters.region) &&
+    (filters.therapy === 'all'   || r.therapy === filters.therapy) &&
+    (filters.riskLevel === 'all' || r.risk === filters.riskLevel)
+  ), [filters])
+
+  const activeFilterCount = ['region', 'therapy', 'riskLevel'].filter((k) => filters[k] !== 'all').length
+
+  const handleExportPDF = () => {
+    logAction('report_exported_pdf', `reports-${filters.period}`, { filters })
+    // Tiny delay so React flushes the print-only marker before the dialog opens
+    requestAnimationFrame(() => window.print())
+  }
+
+  const resetFilters = () => setFilters({ region: 'all', therapy: 'all', riskLevel: 'all', period: 'q2-2026' })
+
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <h1>{role === 'auditor' ? t('Compliance reports', 'تقارير الامتثال') : t('Reports', 'التقارير')}</h1>
+          <div className="subtitle">
+            {t('Roll-up KPIs · drill into region, district, or individual', 'مؤشرات تجميعية · غُص في المنطقة أو الفرد')}
+          </div>
+        </div>
+        <div className="row no-print">
+          <button className={`btn ${filtersOpen ? 'primary' : ''}`} onClick={() => setFiltersOpen((s) => !s)}>
+            <Icon name="filter" size={14} /> &nbsp; {t('Filters', 'الفلاتر')}
+            {activeFilterCount > 0 && (
+              <span style={{ marginInlineStart: 6, background: 'var(--red)', color: 'white', borderRadius: 10, fontSize: 9, padding: '1px 6px', fontWeight: 700 }}>{activeFilterCount}</span>
+            )}
+          </button>
+          <button className="btn primary" onClick={handleExportPDF}>
+            <Icon name="download" size={14} /> &nbsp; {t('Export PDF', 'تصدير PDF')}
+          </button>
+        </div>
+      </div>
+
+      {/* Print-only report header */}
+      <div className="print-only" style={{ marginBottom: 16, paddingBottom: 12, borderBottom: '2px solid var(--blue)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--blue-d)' }}>Avanza LMS — Reports</div>
+            <div style={{ fontSize: 11, color: 'var(--tx2)' }}>
+              Generated {new Date().toLocaleString()} · Period: {PERIODS.find((p) => p.id === filters.period)?.en}
+              {filters.region !== 'all' && ` · Region: ${filters.region}`}
+              {filters.therapy !== 'all' && ` · Therapy: ${filters.therapy}`}
+              {filters.riskLevel !== 'all' && ` · Risk: ${filters.riskLevel}`}
+            </div>
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--tx3)', textAlign: 'end' }}>
+            21 CFR Part 11 · Confidential<br />Page generated by Avanza LMS
+          </div>
+        </div>
+      </div>
+
+      {filtersOpen && (
+        <div className="card mb-12 fade-in no-print">
+          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <h3 style={{ margin: 0 }}>{t('Filter reports', 'تصفية التقارير')}</h3>
+            <button className="btn ghost" onClick={resetFilters} disabled={activeFilterCount === 0 && filters.period === 'q2-2026'}>
+              {t('Reset', 'إعادة تعيين')}
+            </button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label>{t('Period', 'الفترة')}</label>
+              <select className="filter-input" value={filters.period} onChange={(e) => setFilters({ ...filters, period: e.target.value })}>
+                {PERIODS.map((p) => <option key={p.id} value={p.id}>{t(p.en, p.ar)}</option>)}
+              </select>
+            </div>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label>{t('Region', 'المنطقة')}</label>
+              <select className="filter-input" value={filters.region} onChange={(e) => setFilters({ ...filters, region: e.target.value })}>
+                <option value="all">{t('All regions', 'كل المناطق')}</option>
+                {ALL_REGIONS.map((r) => <option key={r.name} value={r.name}>{t(r.name, r.nameAr)}</option>)}
+              </select>
+            </div>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label>{t('Therapy area', 'المجال العلاجي')}</label>
+              <select className="filter-input" value={filters.therapy} onChange={(e) => setFilters({ ...filters, therapy: e.target.value })}>
+                <option value="all">{t('All therapy areas', 'كل المجالات')}</option>
+                {Array.from(new Set(ALL_REGIONS.map((r) => r.therapy))).map((ta) => <option key={ta} value={ta}>{ta}</option>)}
+              </select>
+            </div>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label>{t('Risk level', 'مستوى الخطر')}</label>
+              <select className="filter-input" value={filters.riskLevel} onChange={(e) => setFilters({ ...filters, riskLevel: e.target.value })}>
+                <option value="all">{t('All', 'الكل')}</option>
+                <option value="High">{t('High', 'مرتفع')}</option>
+                <option value="Medium">{t('Medium', 'متوسط')}</option>
+                <option value="Low">{t('Low', 'منخفض')}</option>
+              </select>
+            </div>
+          </div>
+          {activeFilterCount > 0 && (
+            <div className="muted" style={{ fontSize: 11, marginTop: 12 }}>
+              {t(`${activeFilterCount} filter(s) applied · ${regions.length} region(s) · ${predictiveRisks.length} risk row(s) shown`,
+                 `${activeFilterCount} مرشح مطبق · ${regions.length} منطقة · ${predictiveRisks.length} صف خطر`)}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="stat-grid">
+        <StatCard label={t('Org completion', 'إنجاز المؤسسة')}    value="78%" subtitle={t('+5 vs Q1', '+5 مقابل الربع 1')}     icon="pulse"  iconBg="var(--blue-l)"  iconColor="var(--blue-d)" valueColor="var(--blue-d)" />
+        <StatCard label={t('Avg final score', 'متوسط الدرجات')}   value="86%" subtitle={t('Pass mark hit',  'الحد الأدنى متجاوز')} icon="award"  iconBg="var(--green-l)" iconColor="var(--green)"  valueColor="var(--green)" />
+        <StatCard label={t('Mandatory current', 'الإلزامي ساري')} value="97%" subtitle={t('3% lapsed',       '3٪ منتهية')}        icon="shield" iconBg="var(--amb-l)"   iconColor="var(--amb)"    valueColor="var(--amb)" />
+        <StatCard label={t('Active duty learners', 'في الخدمة')} value={teams.length * 4} subtitle={t('All countries', 'جميع الدول')} icon="users" iconBg="var(--pur-l)" iconColor="var(--pur)" valueColor="var(--pur)" />
+      </div>
+
+      <div className="two-col">
+        <div className="card">
+          <h2>{t('Region performance', 'أداء المناطق')}</h2>
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>{t('Region', 'المنطقة')}</th>
+                <th>{t('Completion', 'الإنجاز')}</th>
+                <th>{t('Avg score', 'الدرجة')}</th>
+                <th>{t('Hours/wk', 'ساعات/أسبوع')}</th>
+                <th>{t('At risk', 'في خطر')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {regions.map((r) => (
+                <tr key={r.name}>
+                  <td>{t(r.name, r.nameAr)}</td>
+                  <td>{r.completion}%</td>
+                  <td>{r.score}%</td>
+                  <td>{r.hours}</td>
+                  <td><Pill variant={r.risk > 0 ? 'red' : 'green'}>{r.risk}</Pill></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="card">
+          <h2>{t('Predictive risk alerts', 'تنبيهات تنبؤية بالخطر')}</h2>
+          <div className="muted mb-12" style={{ fontSize: 11, lineHeight: 1.55 }}>
+            {t('Gradient-boosted model trained on completion patterns flags issues before they become problems.',
+               'نموذج تنبؤي مُدرَّب على أنماط الإنجاز يتنبأ بالمشكلات قبل وقوعها.')}
+          </div>
+          {predictiveRisks.map((r, i) => (
+            <div key={i} style={{ padding:'10px 0', borderTop: '1px solid var(--border)' }}>
+              <div className="row" style={{ justifyContent:'space-between' }}>
+                <div style={{ fontWeight:700 }}>{t(r.user, r.userAr)}</div>
+                <Pill variant={r.risk === 'High' ? 'red' : 'amber'}>{r.prob}% · {t(r.risk, r.riskAr)}</Pill>
+              </div>
+              <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>{t(r.en, r.ar)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="card mt-16">
+        <h2>{t('Compliance / mandatory training', 'الامتثال / التدريب الإلزامي')}</h2>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12 }}>
+          <ComplianceTile label={t('PV & AE Reporting', 'اليقظة والإبلاغ')} pct={97} variant="green" />
+          <ComplianceTile label={t('Anti-Bribery (FCPA)', 'مكافحة الرشوة')} pct={94} variant="green" />
+          <ComplianceTile label={t('Promotional Code', 'كود الترويج')} pct={88} variant="amber" />
+          <ComplianceTile label={t('Data Privacy (GDPR)', 'خصوصية البيانات')} pct={91} variant="green" />
+        </div>
+      </div>
+    </>
+  )
+}
+
+function ComplianceTile({ label, pct, variant }) {
+  return (
+    <div style={{ padding:14, border: '1px solid var(--border)', borderRadius: 'var(--r3)' }}>
+      <Pill variant={variant}>{pct}%</Pill>
+      <div style={{ fontSize:13, fontWeight:700, marginTop: 8 }}>{label}</div>
+    </div>
+  )
+}
