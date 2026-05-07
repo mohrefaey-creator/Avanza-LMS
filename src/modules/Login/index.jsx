@@ -2,38 +2,19 @@ import { useState } from 'react'
 import { useApp } from '../../context/AppContext.jsx'
 import Icon from '../../components/Icon.jsx'
 
-const ROLE_LABELS = {
-  admin:   { en: 'Admin',   ar: 'المدير' },
-  manager: { en: 'Manager', ar: 'المشرف' },
-  learner: { en: 'Learner', ar: 'متعلم' },
-  auditor: { en: 'Auditor', ar: 'المدقق' },
-}
-
-// Production state — only the platform owner is seeded. Each "Demo role"
-// button still pre-fills the owner email; the login() handler matches by
-// email and lands you as admin regardless of which button you click.
+// Production state — only the platform owner is seeded. The login handler
+// matches the user by email; role is resolved server-side from the matched
+// account, so no manual role picker is shown.
 const OWNER_EMAIL = 'moh.refaey@gmail.com'
-const DEMO_EMAILS = {
-  admin:   OWNER_EMAIL,
-  manager: OWNER_EMAIL,
-  learner: OWNER_EMAIL,
-  auditor: OWNER_EMAIL,
-}
 
 export default function Login() {
   const { t, login } = useApp()
-  const [role, setRole] = useState('admin')
-  const [email, setEmail] = useState(DEMO_EMAILS.admin)
+  const [email, setEmail] = useState(OWNER_EMAIL)
   const [password, setPassword] = useState('')
-
-  const handleRoleClick = (r) => {
-    setRole(r)
-    setEmail(DEMO_EMAILS[r])
-  }
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    login(role, email)
+    login('admin', email)
   }
 
   return (
@@ -55,19 +36,6 @@ export default function Login() {
           <form className="login-card" onSubmit={handleSubmit}>
             <h1>{t('Welcome back', 'مرحبًا بعودتك')}</h1>
             <p className="sub">{t('Sign in to your Avanza LMS account.', 'سجل الدخول إلى حسابك في أفانزا.')}</p>
-
-            <div className="field">
-              <label>{t('Demo role', 'الدور التجريبي')}</label>
-              <div className="role-grid">
-                {Object.keys(ROLE_LABELS).map((r) => (
-                  <button key={r} type="button"
-                    className={role === r ? 'active' : ''}
-                    onClick={() => handleRoleClick(r)}>
-                    {t(ROLE_LABELS[r].en, ROLE_LABELS[r].ar)}
-                  </button>
-                ))}
-              </div>
-            </div>
 
             <div className="field">
               <label>{t('Email', 'البريد الإلكتروني')}</label>
