@@ -24,7 +24,8 @@ export default function Login() {
           <img src="/login-hero.png" alt="Avanza LMS" className="login-hero-img" />
           <img src="/logo-lms.png" alt="Avanza LMS" className="login-brand-logo" />
           <div className="login-hero-overlay">
-            <div className="login-pitch-banner">
+            {/* Desktop placement of pitch banner — hidden on mobile via CSS */}
+            <div className="login-pitch-banner desktop-only">
               {t(<>The <span>Smart</span> LMS built for Cigalah Team.</>, <>نظام التعلم <span>الذكي</span> المصمم لفريق سيجالا.</>)}
             </div>
             {/* Desktop placement of the feature list — hidden on mobile via CSS */}
@@ -58,8 +59,11 @@ export default function Login() {
           </form>
         </section>
 
-        {/* Mobile placement of the feature list — hidden on desktop via CSS */}
+        {/* Mobile placement of pitch banner + feature list — hidden on desktop via CSS */}
         <section className="login-features-mobile-section">
+          <div className="login-pitch-banner mobile-only">
+            {t(<>The <span>Smart</span> LMS built for Cigalah Team.</>, <>نظام التعلم <span>الذكي</span> المصمم لفريق سيجالا.</>)}
+          </div>
           <FeaturesList />
         </section>
       </main>
