@@ -728,7 +728,7 @@ a:hover { text-decoration: underline; }
      white background drops cleanly onto the hero image. */
   .login-brand-logo {
     position: absolute;
-    top: -10px;
+    top: -36px;
     left: 8px;
     width: 200px;
     height: auto;
@@ -791,7 +791,7 @@ a:hover { text-decoration: underline; }
   .login-hero { min-height: 240px; }
   .login-hero-overlay { padding: 14px 18px 18px; gap: 14px; }
   .login-pitch-banner { font-size: 16px; }
-  .login-brand-logo { width: 160px; top: -6px; left: 4px; }
+  .login-brand-logo { width: 160px; top: -28px; left: 4px; }
   [dir="rtl"] .login-brand-logo { left: auto; right: 4px; }
 }
 .field {
