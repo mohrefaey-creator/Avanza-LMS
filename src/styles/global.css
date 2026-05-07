@@ -721,23 +721,25 @@ a:hover { text-decoration: underline; }
     position: relative;
     inset: auto;
     min-height: 320px;
-    /* Stack hero contents top-to-bottom so logo sits above pitch banner */
-    justify-content: flex-start;
-    padding-top: 16px;
   }
 
-  /* Brand logo — scale to fit the hero on phones; center horizontally.
-     Keep mix-blend-mode: multiply (inherited) so the PNG's white background
-     drops out cleanly onto the hero image, exactly like desktop. */
+  /* Brand logo — top-left of the hero, absolutely positioned exactly like
+     desktop (just smaller). Inherits mix-blend-mode: multiply so the PNG's
+     white background drops cleanly onto the hero image. */
   .login-brand-logo {
-    position: relative;
-    top: auto;
-    left: auto;
-    width: min(86vw, 360px);
-    margin: 0 auto;
-    display: block;
+    position: absolute;
+    top: -10px;
+    left: 8px;
+    width: 200px;
+    height: auto;
+    margin: 0;
   }
-  /* Hero image fills the hero behind the logo; full opacity so multiply
+  [dir="rtl"] .login-brand-logo {
+    left: auto;
+    right: 8px;
+  }
+
+  /* Hero image fills the hero behind the logo at full opacity so multiply
      can hide the logo's white background. */
   .login-hero-img {
     top: 0;
@@ -786,10 +788,11 @@ a:hover { text-decoration: underline; }
 }
 
 @media (max-width: 480px) {
-  .login-hero { min-height: 280px; padding-top: 12px; }
+  .login-hero { min-height: 240px; }
   .login-hero-overlay { padding: 14px 18px 18px; gap: 14px; }
-  .login-pitch-banner { font-size: 17px; }
-  .login-brand-logo { width: min(80vw, 320px); }
+  .login-pitch-banner { font-size: 16px; }
+  .login-brand-logo { width: 160px; top: -6px; left: 4px; }
+  [dir="rtl"] .login-brand-logo { left: auto; right: 4px; }
 }
 .field {
   margin-bottom: 14px;
