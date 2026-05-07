@@ -51,3 +51,9 @@ Logo\ LMS.png
 SKILL*.md
 
 .vercel
+
+# Excel scratch files the user keeps in the project root while iterating
+*.xlsx
+~$*.xlsx
+*.xls
+~$*.xls
