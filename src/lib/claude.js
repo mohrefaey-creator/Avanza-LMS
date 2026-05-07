@@ -75,7 +75,8 @@ import { COACH_PROMPT_SUFFIX } from '../data/personas.js'
 //               Set VITE_AI_ENABLED=true and ANTHROPIC_API_KEY=... in .env.local
 // Production:   set both env vars in Vercel project settings.
 const API_URL = '/api/claude'
-const AI_ENABLED = import.meta.env.VITE_AI_ENABLED === 'true'
+// Tolerate stray BOM / whitespace some shells inject when piping env values.
+const AI_ENABLED = String(import.meta.env.VITE_AI_ENABLED || '').replace(/^﻿/, '').trim() === 'true'
 const MODEL_OPUS = 'claude-opus-4-7'
 const MODEL_HAIKU = 'claude-haiku-4-5-20251001'
 

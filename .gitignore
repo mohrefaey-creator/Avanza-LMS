@@ -45,3 +45,5 @@ Logo\ LMS.png
 # Claude Code project state
 .claude/
 SKILL*.md
+
+.vercel
