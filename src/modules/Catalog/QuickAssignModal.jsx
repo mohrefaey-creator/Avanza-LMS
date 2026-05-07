@@ -43,12 +43,12 @@ const ROLE_OPTIONS = [
 
 const LINE_OPTIONS = [
   { id: 'all', en: 'Any line', ar: 'أي مستوى' },
-  { id: 'L1',  en: 'L1 · Managing Director',  ar: 'L1' },
-  { id: 'L2',  en: 'L2 · BU Head',            ar: 'L2' },
-  { id: 'L3',  en: 'L3 · National Sales',     ar: 'L3' },
-  { id: 'L4',  en: 'L4 · District / Regional', ar: 'L4' },
-  { id: 'L5',  en: 'L5 · Senior',             ar: 'L5' },
-  { id: 'L6',  en: 'L6 · Rep / MSL / KAM',    ar: 'L6' },
+  { id: 'L1',  en: 'L1', ar: 'L1' },
+  { id: 'L2',  en: 'L2', ar: 'L2' },
+  { id: 'L3',  en: 'L3', ar: 'L3' },
+  { id: 'L4',  en: 'L4', ar: 'L4' },
+  { id: 'L5',  en: 'L5', ar: 'L5' },
+  { id: 'L6',  en: 'L6', ar: 'L6' },
 ]
 
 export default function QuickAssignModal({ course, onClose }) {

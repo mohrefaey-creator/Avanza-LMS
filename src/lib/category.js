@@ -35,15 +35,17 @@ export function getCategoryTheme(category) {
   return CATEGORY_THEME[category] || CATEGORY_THEME.other
 }
 
-// Per-Line theme — L1..L6 each get a distinct Pill variant so seniority
-// is visually scannable.
+// Per-Line theme — L1..L6 each get a distinct Pill variant so the lines
+// are visually scannable. The mapping of which line corresponds to which
+// org level is defined by the customer, not by us, so we don't ship a
+// label here — just the color code.
 export const LINE_THEME = {
-  L1: { variant: 'red',    en: 'L1 · Managing Director',     ar: 'L1 · المدير العام' },
-  L2: { variant: 'purple', en: 'L2 · Business Unit Head',    ar: 'L2 · رئيس الوحدة' },
-  L3: { variant: 'teal',   en: 'L3 · National Sales Mgr',    ar: 'L3 · مدير مبيعات وطني' },
-  L4: { variant: 'blue',   en: 'L4 · District / Regional',   ar: 'L4 · مدير المنطقة' },
-  L5: { variant: 'green',  en: 'L5 · Senior',                ar: 'L5 · أول' },
-  L6: { variant: 'amber',  en: 'L6 · Rep / MSL / KAM',       ar: 'L6 · مندوب' },
+  L1: { variant: 'red'    },
+  L2: { variant: 'purple' },
+  L3: { variant: 'teal'   },
+  L4: { variant: 'blue'   },
+  L5: { variant: 'green'  },
+  L6: { variant: 'amber'  },
 }
 
 export function getLineVariant(line) {

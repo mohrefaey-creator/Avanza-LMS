@@ -13,18 +13,12 @@ async function getXlsx() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// USER TEMPLATE — matches C:\Users\malrefaey\Desktop\LMS\User Template.txt
+// USER TEMPLATE
 //
 // Hierarchy is captured by two columns:
 //   Manager Email — the user's direct manager (the chain is built by matching
 //                   this field to another row's Email)
-//   Line          — seniority level L1..L6
-//                     L1 = Managing Director (top)
-//                     L2 = Business Unit Head
-//                     L3 = National Sales Manager
-//                     L4 = District / Regional Sales Manager
-//                     L5 = Senior Rep / Senior MSL
-//                     L6 = Medical Rep / MSL / KAM (bottom)
+//   Line          — L1..L6 levels defined by the customer's org chart
 // ─────────────────────────────────────────────────────────────────────────────
 const TEMPLATE_HEADERS = [
   'User ID',
@@ -409,8 +403,8 @@ export default function BulkUploadModal({ onClose }) {
               {TEMPLATE_HEADERS.map((h) => <Pill key={h} variant="gray">{h}</Pill>)}
             </div>
             <div className="muted" style={{ fontSize: 11, marginTop: 8, lineHeight: 1.5 }}>
-              {t('Line values: L1 (Managing Director) · L2 (Business Unit Head) · L3 (National Sales Mgr) · L4 (District/Regional Sales Mgr) · L5 (Senior rep/MSL) · L6 (Rep/MSL/KAM).',
-                 'قيم Line: L1 (المدير العام) · L2 (رئيس الوحدة) · L3 (مدير المبيعات الوطني) · L4 (مدير المنطقة) · L5 (مندوب أول) · L6 (مندوب).')}
+              {t('Line values must be L1, L2, L3, L4, L5, or L6.',
+                 'قيم العمود Line يجب أن تكون L1، L2، L3، L4، L5، أو L6.')}
             </div>
           </div>
 
@@ -437,13 +431,13 @@ export default function BulkUploadModal({ onClose }) {
 
           {stats && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 12 }}>
-              <LineStat code="L1" count={stats.L1} label={t('Managing Dir', 'المدير العام')}        color="var(--pur)" />
-              <LineStat code="L2" count={stats.L2} label={t('BU Head',       'رئيس وحدة')}            color="var(--blue-d)" />
-              <LineStat code="L3" count={stats.L3} label={t('Nat. Sales',    'مبيعات وطني')}          color="var(--teal)" />
-              <LineStat code="L4" count={stats.L4} label={t('Dist. Sales',   'مبيعات منطقة')}         color="var(--blue)" />
-              <LineStat code="L5" count={stats.L5} label={t('Senior',        'أول')}                  color="var(--green)" />
-              <LineStat code="L6" count={stats.L6} label={t('Rep / MSL',     'مندوب')}                color="var(--amb)" />
-              <LineStat code={t('Total','الكل')}     count={stats.total} label={t('Total','الإجمالي')} color="var(--tx)" />
+              <LineStat code="L1" count={stats.L1} color="#DC2626" />
+              <LineStat code="L2" count={stats.L2} color="#7C3AED" />
+              <LineStat code="L3" count={stats.L3} color="#0E7490" />
+              <LineStat code="L4" count={stats.L4} color="#1D4ED8" />
+              <LineStat code="L5" count={stats.L5} color="#15803D" />
+              <LineStat code="L6" count={stats.L6} color="#B45309" />
+              <LineStat code={t('Total','الكل')} count={stats.total} color="var(--tx)" />
             </div>
           )}
 
@@ -526,12 +520,11 @@ export default function BulkUploadModal({ onClose }) {
   )
 }
 
-function LineStat({ code, count, label, color }) {
+function LineStat({ code, count, color }) {
   return (
     <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r3)', padding: 8, textAlign: 'center' }}>
-      <div style={{ fontSize: 9, fontWeight: 700, color, letterSpacing: '.3px' }}>{code}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: '.3px' }}>{code}</div>
       <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--tx)', marginTop: 2 }}>{count}</div>
-      <div style={{ fontSize: 9, color: 'var(--tx3)', marginTop: 2 }}>{label}</div>
     </div>
   )
 }
