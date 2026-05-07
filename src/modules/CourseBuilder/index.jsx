@@ -40,8 +40,9 @@ const DEFAULT_DRAFT = {
 }
 
 export default function CourseBuilder() {
-  const { t, logAction, addCourse, goto, courses, editingCourseId, setEditingCourseId } = useApp()
+  const { t, logAction, addCourse, updateCourse, goto, courses, editingCourseId, setEditingCourseId } = useApp()
   const [tab, setTab] = useState('content')
+  const [savedToast, setSavedToast] = useState(null)
 
   // If admin clicked Edit on a catalog card, load that course into the draft.
   // Otherwise start from the demo defaults.
@@ -66,6 +67,63 @@ export default function CourseBuilder() {
 
   const isEditing = Boolean(editingCourseId)
 
+  // Build the course payload from the current draft. Used by both Save
+  // draft (status='draft') and Publish (status='active').
+  const buildPayload = (status) => ({
+    title: draft.title,
+    titleAr: draft.titleAr,
+    description: draft.description,
+    descriptionAr: draft.descriptionAr,
+    type: draft.type,
+    contentUrl: draft.contentUrl,
+    youtubeId: draft.youtubeId,
+    contentFilename: draft.contentFilename,
+    contentSize: draft.contentSize,
+    therapyArea: draft.therapyArea,
+    product: draft.product,
+    version: draft.version,
+    validFrom: draft.validFrom,
+    validUntil: draft.validUntil,
+    durationMin: draft.durationMin,
+    passMark: draft.passMark,
+    attemptsAllowed: draft.attemptsAllowed,
+    mandatory: draft.mandatory,
+    language: draft.language,
+    targetRoles: draft.targetRoles,
+    tags: draft.tags,
+    questions: (draft.questions || []).filter((q) => q.status !== 'pending-review'),
+    status,
+  })
+
+  const showSavedToast = (msg) => {
+    setSavedToast(msg)
+    setTimeout(() => setSavedToast(null), 2400)
+  }
+
+  // Save draft — no validation (other than a title), so the user can park
+  // partial edits without losing them. If editing an existing course, the
+  // record updates in place; otherwise a new one is created with status
+  // 'draft' so it doesn't pollute the live catalog.
+  const handleSaveDraft = () => {
+    if (!draft.title) {
+      alert(t('Add a title before saving.', 'أضف عنوانًا قبل الحفظ.'))
+      return
+    }
+    if (isEditing) {
+      const updated = updateCourse(editingCourseId, buildPayload(draft.status || 'active'))
+      if (updated) {
+        logAction('course_updated', updated.id, { title: updated.title, version: updated.version })
+        showSavedToast(t('Draft saved', 'تم حفظ المسودة'))
+      }
+    } else {
+      const created = addCourse(buildPayload('draft'))
+      logAction('course_uploaded', created.id, { title: created.title, status: 'draft' })
+      setEditingCourseId(created.id)  // continue editing the same record
+      showSavedToast(t('Draft saved — keep editing or click Publish', 'تم حفظ المسودة — تابع التحرير أو اضغط نشر'))
+    }
+  }
+
+  // Publish — full validation, then activate. Updates in place when editing.
   const handleSave = () => {
     if (!draft.title) {
       alert(t('Add a title before publishing.', 'أضف عنوانًا قبل النشر.'))
@@ -76,36 +134,23 @@ export default function CourseBuilder() {
               'أضف مصدر المحتوى (ملف، رابط يوتيوب، أو حزمة SCORM) قبل النشر.'))
       return
     }
-    const created = addCourse({
-      title: draft.title,
-      titleAr: draft.titleAr,
-      description: draft.description,
-      descriptionAr: draft.descriptionAr,
-      type: draft.type,
-      contentUrl: draft.contentUrl,
-      youtubeId: draft.youtubeId,
-      contentFilename: draft.contentFilename,
-      contentSize: draft.contentSize,
-      therapyArea: draft.therapyArea,
-      product: draft.product,
-      version: draft.version,
-      validFrom: draft.validFrom,
-      validUntil: draft.validUntil,
-      durationMin: draft.durationMin,
-      passMark: draft.passMark,
-      attemptsAllowed: draft.attemptsAllowed,
-      mandatory: draft.mandatory,
-      language: draft.language,
-      targetRoles: draft.targetRoles,
-      tags: draft.tags,
-      questions: (draft.questions || []).filter((q) => q.status !== 'pending-review'),
-    })
-    logAction('course_uploaded', created.id, {
-      title: created.title,
-      type: created.type,
-      version: created.version,
-      questionCount: created.questions?.length || 0,
-    })
+    if (isEditing) {
+      const updated = updateCourse(editingCourseId, buildPayload('active'))
+      logAction('course_updated', editingCourseId, {
+        title: updated?.title,
+        type: updated?.type,
+        version: updated?.version,
+        questionCount: updated?.questions?.length || 0,
+      })
+    } else {
+      const created = addCourse(buildPayload('active'))
+      logAction('course_uploaded', created.id, {
+        title: created.title,
+        type: created.type,
+        version: created.version,
+        questionCount: created.questions?.length || 0,
+      })
+    }
     goto('catalog')
   }
 
@@ -129,15 +174,29 @@ export default function CourseBuilder() {
               <Icon name="arrowL" size={14} /> &nbsp; {t('Cancel edit', 'إلغاء')}
             </button>
           )}
-          <button className="btn">{t('Save draft', 'حفظ المسودة')}</button>
+          <button className="btn" onClick={handleSaveDraft}>{t('Save draft', 'حفظ المسودة')}</button>
           <button className="btn primary" onClick={handleSave}>
             <Icon name="upload" size={14} /> &nbsp;
             {isEditing
               ? t(`Publish ${draft.version || 'v1.0.0'}`, `نشر ${draft.version || 'v1.0.0'}`)
-              : t('Publish v2.1.1', 'نشر v2.1.1')}
+              : t('Publish', 'نشر')}
           </button>
         </div>
       </div>
+
+      {savedToast && (
+        <div className="fade-in" style={{
+          position: 'fixed', bottom: 28, insetInlineEnd: 28,
+          background: '#DCFCE7', color: '#15803D',
+          border: '1px solid #86EFAC',
+          padding: '12px 16px', borderRadius: 'var(--r3)',
+          fontWeight: 600, fontSize: 13, zIndex: 60,
+          boxShadow: '0 8px 24px rgba(0,0,0,.14)',
+          maxWidth: 360,
+        }}>
+          {savedToast}
+        </div>
+      )}
 
       <div className="card">
         <div className="tabs">

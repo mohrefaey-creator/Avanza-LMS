@@ -349,6 +349,19 @@ export function AppProvider({ children }) {
     return course
   }
 
+  // Update an existing course in place. Used by the Course Builder when
+  // saving edits to an already-published course (so we don't fork into a
+  // duplicate). Returns the updated course or null if the id is unknown.
+  const updateCourse = (id, partial) => {
+    let updated = null
+    setCourses((prev) => prev.map((c) => {
+      if (c.id !== id) return c
+      updated = { ...c, ...partial }
+      return updated
+    }))
+    return updated
+  }
+
   useEffect(() => {
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'
     document.documentElement.lang = lang
@@ -437,6 +450,7 @@ export function AppProvider({ children }) {
     addUsers,
     courses,
     addCourse,
+    updateCourse,
     teams,
     assignments,
     enrollInCourse,
