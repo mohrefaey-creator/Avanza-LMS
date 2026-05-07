@@ -32,6 +32,7 @@ const PATHS = {
   zap:     <polygon points="13 2 4 14 12 14 11 22 20 10 12 10" stroke="currentColor" strokeWidth="1.7" fill="none" strokeLinecap="round" strokeLinejoin="round" />,
   filter:  <path d="M3 5h18 M6 12h12 M10 19h4" stroke="currentColor" strokeWidth="1.9" fill="none" strokeLinecap="round" />,
   sparkle: <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" stroke="currentColor" strokeWidth="1.7" fill="none" strokeLinejoin="round" />,
+  menu:    <path d="M3 6h18 M3 12h18 M3 18h18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />,
 }
 
 export default function Icon({ name = 'home', size = 18, color }) {

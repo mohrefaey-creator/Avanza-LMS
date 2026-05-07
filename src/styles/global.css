@@ -946,6 +946,15 @@ a:hover { text-decoration: underline; }
   gap: 12px;
 }
 
+.rp-call-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .rp-call-grid { grid-template-columns: 1fr; }
+}
+
 .rp-persona-card {
   background: var(--white);
   border: 1px solid var(--border);
@@ -1090,6 +1099,209 @@ a:hover { text-decoration: underline; }
 @keyframes pulse {
   0%, 100% { transform: scale(1);   opacity: 1; }
   50%      { transform: scale(1.4); opacity: .55; }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Mobile (≤ 768px) — drawer pattern, single-column layouts, touch targets
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Hamburger button — only visible on mobile */
+.topbar-burger { display: none; }
+
+/* Mobile drawer backdrop — full-screen dim layer behind the open sidebar */
+.mobile-nav-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 30, 60, .55);
+  z-index: 80;
+  animation: fadeIn .2s ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 768px) {
+  /* App shell collapses to single column; sidebar becomes an off-canvas drawer */
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+  [dir="rtl"] .app-shell { grid-template-columns: 1fr; }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    max-width: 85vw;
+    transform: translateX(-100%);
+    transition: transform .25s ease-out;
+    z-index: 90;
+    box-shadow: 8px 0 24px rgba(15, 30, 60, .25);
+  }
+  [dir="rtl"] .sidebar {
+    left: auto;
+    right: 0;
+    transform: translateX(100%);
+    box-shadow: -8px 0 24px rgba(15, 30, 60, .25);
+  }
+  .app-shell.mobile-nav-open .sidebar { transform: translateX(0); }
+  .app-shell.mobile-nav-open .mobile-nav-backdrop { display: block; }
+  .app-shell.mobile-nav-open { overflow: hidden; }
+
+  /* Logo brand area — keep height contained on mobile */
+  .sidebar-logo-img { height: 90px; }
+
+  /* Topbar adjustments */
+  .topbar {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  .topbar-burger {
+    display: flex;
+    width: 40px;
+    height: 40px;
+  }
+  .topbar-search {
+    max-width: none;
+  }
+  .topbar-search input {
+    padding: 9px 10px 9px 32px;
+    font-size: 14px;  /* avoids iOS auto-zoom on focus */
+  }
+  /* Hide user-chip text on small screens — keep avatar only */
+  .user-chip {
+    padding: 4px;
+  }
+  .user-chip > div:not(.avatar) { display: none; }
+
+  /* Page area — reduce padding so content doesn't get cramped */
+  .page-area {
+    padding: 14px 12px;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+
+  /* Page head — stack title and primary action vertically */
+  .page-head {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 12px;
+  }
+  .page-head h1 { font-size: 17px; }
+  .page-head .row { width: 100%; flex-wrap: wrap; }
+
+  /* All multi-column layouts collapse to one column */
+  .two-col,
+  .builder-grid,
+  .team-grid,
+  .stat-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  /* Inline-style grids — collapse hardcoded repeat(N, 1fr) layouts that
+     pages set via React style props (dashboards, reports, etc.) */
+  [style*="repeat(4, 1fr)"],
+  [style*="repeat(3, 1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  [style*="grid-template-columns: 1fr 1fr"],
+  [style*="gridTemplateColumns:'1fr 1fr'"],
+  [style*="gridTemplateColumns: '1fr 1fr'"] {
+    /* Already 2-col, keep on mobile so labels/values stay paired */
+  }
+
+  /* Roleplay panes — chat full width, side panel below */
+  .rp-persona-grid {
+    grid-template-columns: 1fr;
+  }
+  .chat-pane { height: 60vh; min-height: 380px; }
+
+  /* Course catalog cards — single column on phones */
+  /* (already handled by inline grid auto-fill, but tighten gap) */
+
+  /* Tables overflow horizontally — wrap them in a scrollable container */
+  .tbl-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -12px;  /* bleed to viewport edges */
+    padding: 0 12px;
+  }
+  .tbl { min-width: 640px; }
+
+  /* Cards / forms — full-bleed feel */
+  .card { padding: 12px; border-radius: 10px; }
+  .card-tight { padding: 10px; }
+
+  /* Buttons — bigger touch targets */
+  .btn {
+    padding: 9px 12px;
+    min-height: 40px;
+    font-size: 13px;
+  }
+  .btn.sm { min-height: 32px; padding: 6px 10px; font-size: 11px; }
+  .icon-btn { width: 40px; height: 40px; }
+
+  /* Inputs — comfortable typing on touch screens, no iOS zoom */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="number"],
+  textarea,
+  select,
+  .filter-input {
+    font-size: 16px !important;
+    min-height: 42px;
+    padding: 10px 12px;
+  }
+
+  /* Filter row — wrap onto multiple rows */
+  .filter-input { flex: 1 1 140px; min-width: 0; }
+
+  /* Modal backdrops — full-screen on mobile */
+  .modal-backdrop > .card,
+  .modal-backdrop > div {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 14px 14px 0 0 !important;
+    align-self: flex-end;
+  }
+
+  /* Notifications panel — full-width drop below topbar */
+  .topbar [style*="position: absolute"][style*="width: 340px"] {
+    width: calc(100vw - 24px) !important;
+    inset-inline-end: 12px !important;
+  }
+
+  /* Leaderboard rows — stack avatar/name and score */
+  .lb-row {
+    grid-template-columns: 30px 1fr auto;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  /* Quiz options — bigger tap targets */
+  .quiz-option {
+    padding: 14px 12px;
+  }
+
+  /* Login: form pane already stacks under hero; just tighten spacing */
+  .login-features { gap: 10px; }
+}
+
+/* Extra-small phones — even tighter */
+@media (max-width: 380px) {
+  .page-area { padding: 12px 10px; }
+  .topbar { padding: 6px 8px; gap: 6px; }
+  .topbar-actions { gap: 4px; }
+  .lang-toggle { display: none !important; }
+  .role-switcher { grid-template-columns: 1fr; }
+  [style*="repeat(4, 1fr)"],
+  [style*="repeat(3, 1fr)"],
+  [style*="repeat(2, 1fr)"] {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 /* Print mode — used by Reports → Export PDF (browser "Save as PDF") */

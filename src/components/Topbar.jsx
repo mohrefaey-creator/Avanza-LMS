@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext.jsx'
 import Icon from './Icon.jsx'
 
 export default function Topbar() {
-  const { lang, switchLang, user, t, logout, notifications, markNotificationRead, markAllNotificationsRead } = useApp()
+  const { lang, switchLang, user, t, logout, notifications, markNotificationRead, markAllNotificationsRead, mobileNavOpen, setMobileNavOpen } = useApp()
   const [bellOpen, setBellOpen] = useState(false)
   const bellRef = useRef(null)
 
@@ -20,9 +20,18 @@ export default function Topbar() {
 
   return (
     <div className="topbar">
+      <button
+        className="icon-btn topbar-burger"
+        onClick={() => setMobileNavOpen(!mobileNavOpen)}
+        aria-label={mobileNavOpen ? t('Close navigation', 'إغلاق القائمة') : t('Open navigation', 'فتح القائمة')}
+        aria-expanded={mobileNavOpen}
+      >
+        <Icon name={mobileNavOpen ? 'x' : 'menu'} size={20} />
+      </button>
+
       <div className="topbar-search">
         <span className="topbar-search-icon"><Icon name="search" size={14} /></span>
-        <input type="text" placeholder={t('Search courses, users, certificates…', 'ابحث في الدورات والمستخدمين والشهادات…')} />
+        <input type="text" placeholder={t('Search…', 'ابحث…')} />
       </div>
 
       <div className="topbar-actions">

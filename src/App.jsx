@@ -20,13 +20,20 @@ import AuditLog from './modules/Compliance/AuditLog.jsx'
 import Settings from './modules/Settings/index.jsx'
 
 export default function App() {
-  const { authed, role, module, selectedMember, selectedCourse } = useApp()
+  const { authed, role, module, selectedMember, selectedCourse, mobileNavOpen, setMobileNavOpen } = useApp()
 
   if (!authed) return <Login />
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${mobileNavOpen ? 'mobile-nav-open' : ''}`}>
       <Sidebar />
+      {mobileNavOpen && (
+        <div
+          className="mobile-nav-backdrop"
+          onClick={() => setMobileNavOpen(false)}
+          aria-label="Close navigation"
+        />
+      )}
       <div className="main-pane">
         <Topbar />
         <div className="page-area fade-in" key={`${role}-${module}-${selectedMember || ''}-${selectedCourse || ''}`}>

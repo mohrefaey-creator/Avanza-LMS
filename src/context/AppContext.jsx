@@ -44,6 +44,7 @@ export function AppProvider({ children }) {
   const [module, setModule] = useState('dashboard')
   const [selectedMember, setSelectedMember] = useState(null)
   const [selectedCourse, setSelectedCourse] = useState(null)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [auditLog, setAuditLog] = useState(mockAuditLog)
   const [courses, setCourses] = useState(mockCourses)
   const [teams, setTeams] = useState(mockTeams)
@@ -382,6 +383,7 @@ export function AppProvider({ children }) {
   const goto = (m) => {
     setModule(m)
     setSelectedMember(null)
+    setMobileNavOpen(false)  // auto-close mobile drawer when navigating
   }
 
   const value = useMemo(() => ({
@@ -417,7 +419,9 @@ export function AppProvider({ children }) {
     settings,
     updateSettings,
     resetSettings,
-  }), [lang, role, user, authed, module, selectedMember, selectedCourse, auditLog, courses, teams, users, learningPaths, assignments, certificates, notifications, settings, editingCourseId])
+    mobileNavOpen,
+    setMobileNavOpen,
+  }), [lang, role, user, authed, module, selectedMember, selectedCourse, auditLog, courses, teams, users, learningPaths, assignments, certificates, notifications, settings, editingCourseId, mobileNavOpen])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }

@@ -307,7 +307,7 @@ export default function Roleplay() {
       )}
 
       {started && (
-        <div className="builder-grid" style={{ gridTemplateColumns: '1fr 320px' }}>
+        <div className="rp-call-grid">
           <div className="chat-pane">
             <div className="rp-call-header">
               <div className="team-avatar" style={{ width: 36, height: 36, fontSize: 12, background: persona.bg, color: persona.color }}>
