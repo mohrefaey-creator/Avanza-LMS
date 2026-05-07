@@ -52,6 +52,43 @@ const TEMPLATE_SAMPLE_ROWS = [
 
 const VALID_LINES = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6']
 
+// Header aliases — every accepted variant maps to one canonical column.
+// Comparison is normalized (lowercase, no spaces / punctuation / dashes /
+// underscores) so "Manager E-mail", "manager_email", "MANAGER EMAIL" all
+// resolve to "Manager Email".
+const HEADER_ALIASES = {
+  'User ID':       ['user id', 'userid', 'employee id', 'empid', 'emp id', 'staff id', 'id'],
+  'User Name':     ['user name', 'username', 'name', 'full name', 'fullname', 'employee name'],
+  'Role':          ['role', 'user role', 'access role', 'access level', 'system role'],
+  'Email':         ['email', 'e-mail', 'email address', 'mail', 'work email', 'corporate email'],
+  'Job Title':     ['job title', 'jobtitle', 'title', 'position', 'designation'],
+  'Manager Name':  ['manager name', 'manager', 'reports to', 'reportsto', 'line manager', 'supervisor'],
+  'Manager Email': ['manager email', 'manageremail', 'manager e-mail', 'reports to email', 'supervisor email'],
+  'Country':       ['country'],
+  'Region':        ['region', 'territory', 'area'],
+  'City':          ['city', 'town', 'location'],
+  'Line':          ['line', 'level', 'seniority', 'grade', 'tier', 'l'],
+  'Phone':         ['phone', 'phone number', 'phonenumber', 'mobile', 'mobile number', 'cell', 'tel', 'telephone', 'contact'],
+}
+
+function normalizeHeader(s) {
+  return String(s || '').toLowerCase().replace(/[\s_\-./]+/g, '').trim()
+}
+
+const ALIAS_LOOKUP = (() => {
+  const map = new Map()
+  for (const [canonical, aliases] of Object.entries(HEADER_ALIASES)) {
+    for (const alias of aliases) map.set(normalizeHeader(alias), canonical)
+    map.set(normalizeHeader(canonical), canonical)
+  }
+  return map
+})()
+
+// Map a detected header to its canonical form, or null if unrecognized.
+function canonicalize(header) {
+  return ALIAS_LOOKUP.get(normalizeHeader(header)) || null
+}
+
 function escapeCSV(cell) {
   if (cell === null || cell === undefined) return ''
   const s = String(cell)
@@ -94,22 +131,36 @@ export async function downloadExcelTemplate() {
 
 // Parse an Excel workbook (xlsx/xls) into the same { headers, rows } shape
 // the rest of the pipeline expects — same as parseDelimited returns for CSV.
+//
+// Auto-detects the header row: scans the first 10 rows and picks the one
+// with the highest number of recognizable headers (so files with a
+// title/note row above the actual headers still parse).
 async function parseExcel(arrayBuffer) {
   const XLSX = await getXlsx()
   const wb = XLSX.read(arrayBuffer, { type: 'array' })
-  if (!wb.SheetNames.length) return { headers: [], rows: [] }
+  if (!wb.SheetNames.length) return { headers: [], rows: [], rawHeaders: [] }
   const ws = wb.Sheets[wb.SheetNames[0]]  // first sheet only
   const matrix = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', blankrows: false })
-  if (matrix.length < 2) return { headers: [], rows: [] }
-  const headers = matrix[0].map((h) => String(h || '').trim())
-  const rows = matrix.slice(1)
+  if (matrix.length < 2) return { headers: [], rows: [], rawHeaders: [] }
+
+  // Find the row that looks most like a header row (most cells canonicalize)
+  let bestIdx = 0, bestScore = -1
+  const scanLimit = Math.min(matrix.length, 10)
+  for (let i = 0; i < scanLimit; i++) {
+    const score = matrix[i].reduce((acc, cell) => acc + (canonicalize(cell) ? 1 : 0), 0)
+    if (score > bestScore) { bestScore = score; bestIdx = i }
+  }
+
+  const rawHeaders = matrix[bestIdx].map((h) => String(h || '').trim())
+  const headers = rawHeaders.map((h) => canonicalize(h) || h)
+  const rows = matrix.slice(bestIdx + 1)
     .filter((r) => r.some((cell) => String(cell ?? '').trim() !== ''))
     .map((cells) => {
       const obj = {}
       headers.forEach((h, i) => { obj[h] = String(cells[i] ?? '').trim() })
       return obj
     })
-  return { headers, rows }
+  return { headers, rows, rawHeaders }
 }
 
 function parseCSVLine(line) {
@@ -140,17 +191,20 @@ function parseDelimited(text) {
   // Accept both CSV (comma) and TSV (tab) — auto-detected per file.
   const clean = text.replace(/^﻿/, '').replace(/^﻿/, '')
   const lines = clean.split(/\r?\n/).filter((l) => l.trim().length > 0)
-  if (lines.length < 2) return { headers: [], rows: [] }
+  if (lines.length < 2) return { headers: [], rows: [], rawHeaders: [] }
   const isTSV = lines[0].split('\t').length > lines[0].split(',').length
   const parseLine = isTSV ? parseTSVLine : parseCSVLine
-  const headers = parseLine(lines[0]).map((h) => h.trim())
+  const rawHeaders = parseLine(lines[0]).map((h) => h.trim())
+  // Convert each detected header to its canonical form (or keep the raw
+  // header when no alias matches, so the user can still see what came in).
+  const headers = rawHeaders.map((h) => canonicalize(h) || h)
   const rows = lines.slice(1).map((line) => {
     const cells = parseLine(line)
     const obj = {}
     headers.forEach((h, i) => { obj[h] = (cells[i] ?? '').trim() })
     return obj
   })
-  return { headers, rows }
+  return { headers, rows, rawHeaders }
 }
 
 function rowToRecord(r) {
@@ -208,16 +262,25 @@ export default function BulkUploadModal({ onClose }) {
   const [parseError, setParseError] = useState(null)
 
   // Common post-parse handler — used by both CSV/TSV and Excel paths
-  const ingestParsed = ({ headers, rows }) => {
+  const ingestParsed = ({ headers, rows, rawHeaders = [] }) => {
     if (rows.length === 0) {
       setParseError(t('No data rows found.', 'لا توجد صفوف بيانات.'))
       setRecords([]); setErrors([]); setStats(null)
       return
     }
-    const missing = TEMPLATE_HEADERS.filter((h) => !headers.includes(h))
-    if (missing.length > 4) {
-      setParseError(t(`File doesn't match the template. Missing columns: ${missing.slice(0, 4).join(', ')}…`,
-                      `الملف لا يطابق القالب. الأعمدة الناقصة: ${missing.slice(0, 4).join('، ')}…`))
+    // Only the truly load-bearing columns are required. Optional columns
+    // (Job Title, Country, Region, City, Phone, User ID) can be missing —
+    // rowToRecord falls back to '' for those.
+    const REQUIRED = ['User Name', 'Email', 'Role']
+    const missingRequired = REQUIRED.filter((h) => !headers.includes(h))
+    if (missingRequired.length > 0) {
+      const detected = rawHeaders.length ? rawHeaders.join(', ') : '—'
+      setParseError(
+        t(
+          `File is missing required column(s): ${missingRequired.join(', ')}. Detected headers: ${detected}. Download the Excel template and copy the column names exactly.`,
+          `يفتقد الملف الأعمدة المطلوبة: ${missingRequired.join('، ')}. الأعمدة الموجودة: ${detected}. حمّل قالب Excel وانسخ أسماء الأعمدة كما هي.`
+        )
+      )
       setRecords([]); setErrors([]); setStats(null)
       return
     }
