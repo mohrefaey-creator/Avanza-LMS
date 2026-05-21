@@ -78,8 +78,18 @@ export function AppProvider({ children }) {
 
   // Try to restore a persisted session. If found, the app boots straight
   // into the dashboard for that user without showing the login screen.
-  // Resolution searches both the persisted users (if any) and the seed list.
-  const userPool = persisted?.users?.length ? persisted.users : mockUsers
+  // Resolution searches the merged pool of persisted users + seed users so
+  // a freshly-seeded login still resolves even if persistence is stale.
+  const userPool = (() => {
+    const seen = new Set()
+    const merged = []
+    for (const u of [...(persisted?.users || []), ...mockUsers]) {
+      if (seen.has(u.id)) continue
+      seen.add(u.id)
+      merged.push(u)
+    }
+    return merged
+  })()
   const restored = typeof window !== 'undefined' ? readPersistedSession(userPool) : null
 
   const [lang, setLang] = useState(restored?.lang || 'en')

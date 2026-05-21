@@ -54,9 +54,26 @@ const DIFFICULTY_COLORS = {
   expert: { bg: 'var(--red-l)',   fg: 'var(--red)' },
 }
 
+// Prepends a strict language directive to the persona's system prompt so
+// Claude conducts the entire roleplay in the call language the learner chose,
+// regardless of the language the persona prompt itself happens to be in.
+function withLangDirective(systemPrompt, callLang) {
+  const directive = callLang === 'ar'
+    ? `LANGUAGE: Conduct this ENTIRE roleplay in formal Arabic (الفصحى, Modern Standard Arabic). Every reply you produce — greetings, objections, questions, closings — MUST be in Arabic. Do not switch to English even if the rep does. If the rep uses an English drug name or trial acronym, you may keep that token but the surrounding sentence must remain Arabic. Coach-mode JSON content (strengths, weaknesses, recommendations, objection quotes and rewrites) must also be in Arabic.
+
+`
+    : `LANGUAGE: Conduct this ENTIRE roleplay in English. All replies, objections, and coach-mode feedback must be in English.
+
+`
+  return directive + systemPrompt
+}
+
 export default function Roleplay() {
   const { t, lang, logAction } = useApp()
   const [persona, setPersona] = useState(DOCTOR_PERSONAS[0])
+  // Per-call language — independent of the global app UI language.
+  // Defaults to the UI lang but the learner can flip it before starting.
+  const [callLang, setCallLang] = useState(lang === 'ar' ? 'ar' : 'en')
   const [started, setStarted] = useState(false)
   const [history, setHistory] = useState([])  // [{ role: 'user'|'assistant', content: string }]
   const [draft, setDraft] = useState('')
@@ -66,14 +83,16 @@ export default function Roleplay() {
   const [callError, setCallError] = useState(null)
   const logRef = useRef(null)
 
-  // Voice state
+  // Voice state. liveMicRef holds the "always-on" intent for the duration of a
+  // voice-mode call so recognition callbacks can decide whether to restart the
+  // mic without depending on stale React state closures.
   const [voiceMode, setVoiceMode] = useState(false)
-  const [handsFree, setHandsFree] = useState(false)
   const [listening, setListening] = useState(false)
   const [interim, setInterim] = useState('')
   const [speaking, setSpeaking] = useState(false)
   const [voiceError, setVoiceError] = useState(null)
   const recognitionRef = useRef(null)
+  const liveMicRef = useRef(false)
 
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
@@ -88,24 +107,25 @@ export default function Roleplay() {
     return () => { window.speechSynthesis.onvoiceschanged = null }
   }, [])
 
-  // Build SpeechRecognition instance for the current lang
+  // Build SpeechRecognition instance for the current call language. Rebuilt
+  // whenever callLang changes so the learner can flip languages between calls.
   useEffect(() => {
     if (!SR_CTOR) return
     const r = new SR_CTOR()
     r.continuous = false
     r.interimResults = true
     r.maxAlternatives = 1
-    r.lang = lang === 'ar' ? 'ar-SA' : 'en-US'
+    r.lang = callLang === 'ar' ? 'ar-SA' : 'en-US'
     recognitionRef.current = r
     return () => { try { r.abort() } catch (_) {} }
-  }, [lang])
+  }, [callLang])
 
   const speak = (text) => {
     if (!TTS_OK || !voiceMode) return
     try {
       window.speechSynthesis.cancel()
       const u = new SpeechSynthesisUtterance(text)
-      u.lang = lang === 'ar' ? 'ar-SA' : 'en-US'
+      u.lang = callLang === 'ar' ? 'ar-SA' : 'en-US'
       const v = pickVoice(u.lang)
       if (v) u.voice = v
       u.rate = 1.0
@@ -113,7 +133,7 @@ export default function Roleplay() {
       u.onstart = () => setSpeaking(true)
       u.onend = () => {
         setSpeaking(false)
-        if (handsFree && voiceMode && started) {
+        if (liveMicRef.current) {
           setTimeout(() => startListening(), 250)
         }
       }
@@ -128,7 +148,8 @@ export default function Roleplay() {
   }
 
   const startListening = () => {
-    if (!recognitionRef.current || listening) return
+    if (!recognitionRef.current) return
+    if (listening || speaking) return
     setVoiceError(null)
     setInterim('')
     const r = recognitionRef.current
@@ -145,9 +166,13 @@ export default function Roleplay() {
     r.onerror = (e) => {
       setListening(false)
       setInterim('')
+      // In always-on mode, silence is expected — just restart, no scary error.
+      if (e.error === 'no-speech' && liveMicRef.current) {
+        setTimeout(() => startListening(), 200)
+        return
+      }
       const map = {
         'not-allowed':   t('Microphone access denied. Allow it in browser settings.', 'تم رفض الميكروفون. اسمح به في إعدادات المتصفح.'),
-        'no-speech':     t('No speech detected — try again.',                          'لم يُكتشف صوت — حاول مجددًا.'),
         'audio-capture': t('No microphone found.',                                     'لم يتم العثور على ميكروفون.'),
         'network':       t('Network error during transcription.',                      'خطأ شبكة أثناء النسخ.'),
       }
@@ -157,10 +182,22 @@ export default function Roleplay() {
       setListening(false)
       const cleaned = finalTranscript.trim()
       setInterim('')
-      if (cleaned) send(cleaned)
+      if (cleaned) {
+        send(cleaned)  // send() → Claude → speak() → speak.onend will re-open the mic
+      } else if (liveMicRef.current) {
+        // Empty utterance / quiet stretch — keep the mic open for natural flow.
+        setTimeout(() => startListening(), 150)
+      }
     }
     try { r.start(); setListening(true) }
-    catch (e) { setListening(false); setVoiceError(e?.message || 'Could not start mic') }
+    catch (e) {
+      // r.start() throws InvalidStateError if a previous session is still
+      // tearing down. That's not user-actionable in always-on mode — just
+      // retry shortly so the mic re-opens.
+      setListening(false)
+      if (liveMicRef.current) setTimeout(() => startListening(), 200)
+      else setVoiceError(e?.message || 'Could not start mic')
+    }
   }
 
   const stopListening = () => {
@@ -175,9 +212,14 @@ export default function Roleplay() {
     setHistory([])
     setCallError(null)
     logAction('roleplay_started', persona.id, { persona: persona.code, voice: voiceMode })
+    if (voiceMode) {
+      liveMicRef.current = true
+      setTimeout(() => startListening(), 250)
+    }
   }
 
   const reset = () => {
+    liveMicRef.current = false
     stopSpeaking()
     stopListening()
     setStarted(false)
@@ -207,7 +249,7 @@ export default function Roleplay() {
     try {
       let reply
       if (claudeReady) {
-        reply = await chatAsRoleplayPersona(nextHistory, persona.systemPrompt, { max_tokens: 600 })
+        reply = await chatAsRoleplayPersona(nextHistory, withLangDirective(persona.systemPrompt, callLang), { max_tokens: 600 })
       } else {
         // Demo mode — cycle the persona's pre-written demo replies.
         await new Promise((r) => setTimeout(r, 700))
@@ -225,6 +267,7 @@ export default function Roleplay() {
 
   const endCallAndCoach = async () => {
     if (!history.length || coachLoading) return
+    liveMicRef.current = false
     stopSpeaking()
     stopListening()
     setCoachLoading(true)
@@ -232,7 +275,7 @@ export default function Roleplay() {
     try {
       let feedback
       if (claudeReady) {
-        feedback = await coachRoleplay(history, persona)
+        feedback = await coachRoleplay(history, { ...persona, systemPrompt: withLangDirective(persona.systemPrompt, callLang) })
       } else {
         await new Promise((r) => setTimeout(r, 1100))
         feedback = demoCoachFeedback(history, persona)
@@ -250,7 +293,7 @@ export default function Roleplay() {
     }
   }
 
-  const useOpener = () => setDraft(lang === 'ar' ? persona.openingLineAr : persona.openingLine)
+  const useOpener = () => setDraft(callLang === 'ar' ? persona.openingLineAr : persona.openingLine)
 
   // ───────────────────────────────────────────────────────────────────────────
   // Render
@@ -272,8 +315,17 @@ export default function Roleplay() {
             <button
               className={`btn ${voiceMode ? 'primary' : ''}`}
               onClick={() => {
-                if (voiceMode) { stopListening(); stopSpeaking() }
-                setVoiceMode((v) => !v)
+                const turningOn = !voiceMode
+                if (!turningOn) {
+                  liveMicRef.current = false
+                  stopListening()
+                  stopSpeaking()
+                }
+                setVoiceMode(turningOn)
+                if (turningOn && started) {
+                  liveMicRef.current = true
+                  setTimeout(() => startListening(), 250)
+                }
               }}
               title={t('Toggle voice mode', 'تبديل وضع الصوت')}
             >
@@ -303,6 +355,8 @@ export default function Roleplay() {
           selected={persona}
           onSelect={setPersona}
           onStart={start}
+          callLang={callLang}
+          onCallLangChange={setCallLang}
         />
       )}
 
@@ -319,6 +373,9 @@ export default function Roleplay() {
                   {lang === 'ar' ? persona.specialtyAr : persona.specialty} · {persona.position}
                 </div>
               </div>
+              <Pill variant={callLang === 'ar' ? 'amber' : 'blue'}>
+                {callLang === 'ar' ? 'العربية' : 'English'}
+              </Pill>
               <button className="btn sm" onClick={reset}>
                 <Icon name="x" size={11} /> &nbsp; {t('New call', 'مكالمة جديدة')}
               </button>
@@ -349,16 +406,10 @@ export default function Roleplay() {
 
             {voiceMode && (
               <div className="rp-voice-strip" style={{
-                background: listening ? 'var(--red-l)' : speaking ? 'var(--blue-l)' : 'var(--bg)',
-                color: listening ? 'var(--red)' : speaking ? 'var(--blue-d)' : 'var(--tx2)',
+                background: speaking ? 'var(--blue-l)' : listening ? 'var(--red-l)' : busy ? 'var(--bg)' : 'var(--bg)',
+                color:      speaking ? 'var(--blue-d)' : listening ? 'var(--red)' : 'var(--tx2)',
               }}>
-                {listening && (
-                  <>
-                    <span className="rp-pulse-dot" />
-                    {t('Listening… speak now', 'يستمع… تحدث الآن')}
-                  </>
-                )}
-                {speaking && (
+                {speaking ? (
                   <>
                     <Icon name="message" size={12} />
                     {t('Doctor speaking…', 'الطبيب يتحدث…')}
@@ -366,15 +417,34 @@ export default function Roleplay() {
                       <Icon name="x" size={11} /> &nbsp; {t('Stop', 'إيقاف')}
                     </button>
                   </>
-                )}
-                {!listening && !speaking && (
+                ) : busy ? (
+                  <>
+                    <Icon name="message" size={12} />
+                    {t('Doctor is thinking…', 'الطبيب يفكر…')}
+                  </>
+                ) : listening ? (
+                  <>
+                    <span className="rp-pulse-dot" />
+                    {t('Listening — just speak naturally', 'يستمع — تحدث بشكل طبيعي')}
+                    <button
+                      className="btn sm"
+                      style={{ marginInlineStart: 'auto' }}
+                      onClick={() => { liveMicRef.current = false; stopListening() }}
+                    >
+                      {t('Pause mic', 'إيقاف الميكروفون')}
+                    </button>
+                  </>
+                ) : (
                   <>
                     <Icon name="play" size={12} />
-                    {t('Tap the mic to speak', 'اضغط الميكروفون للتحدث')}
-                    <label style={{ marginInlineStart: 'auto', display: 'flex', gap: 6, alignItems: 'center', fontSize: 10 }}>
-                      <input type="checkbox" checked={handsFree} onChange={(e) => setHandsFree(e.target.checked)} />
-                      {t('Hands-free', 'بدون يدين')}
-                    </label>
+                    {t('Mic paused', 'الميكروفون متوقف')}
+                    <button
+                      className="btn sm primary"
+                      style={{ marginInlineStart: 'auto' }}
+                      onClick={() => { liveMicRef.current = true; startListening() }}
+                    >
+                      {t('Resume mic', 'استئناف الميكروفون')}
+                    </button>
                   </>
                 )}
               </div>
@@ -387,32 +457,10 @@ export default function Roleplay() {
             )}
 
             {voiceMode ? (
-              <div className="rp-voice-input">
-                <button
-                  type="button"
-                  onClick={listening ? stopListening : startListening}
-                  disabled={busy || speaking || coachLoading}
-                  title={listening ? t('Stop recording', 'إيقاف التسجيل') : t('Start recording', 'بدء التسجيل')}
-                  className="rp-mic-btn"
-                  style={{
-                    background: listening ? 'var(--red)' : 'var(--blue)',
-                    boxShadow: listening
-                      ? '0 0 0 6px rgba(220,38,38,.18), 0 6px 18px rgba(220,38,38,.32)'
-                      : '0 6px 18px rgba(37,99,235,.30)',
-                  }}
-                >
-                  {listening
-                    ? <svg width="24" height="24" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2" fill="white" /></svg>
-                    : <MicIcon />}
-                </button>
-                <div style={{ fontSize: 11, color: 'var(--tx2)', maxWidth: 180, lineHeight: 1.4 }}>
-                  {listening
-                    ? t('Click again or stop talking to send.', 'اضغط مجددًا أو توقف عن الكلام للإرسال.')
-                    : busy
-                    ? t('Doctor is thinking…', 'الطبيب يفكر…')
-                    : speaking
-                    ? t('Wait for the doctor to finish.', 'انتظر حتى ينتهي الطبيب.')
-                    : t('Click the mic and speak as if you\'re on a real doctor call.', 'اضغط الميكروفون وتحدث كأنك في مكالمة حقيقية.')}
+              <div className="rp-voice-input" style={{ justifyContent: 'center' }}>
+                <div style={{ fontSize: 11, color: 'var(--tx2)', textAlign: 'center', maxWidth: 320, lineHeight: 1.5 }}>
+                  {t('The mic stays open for the whole call. Just talk — the doctor will respond when you pause.',
+                     'الميكروفون مفتوح طوال المكالمة. تحدث فقط — سيرد الطبيب عندما تتوقف.')}
                 </div>
               </div>
             ) : (
@@ -481,22 +529,45 @@ export default function Roleplay() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Persona picker — landing screen before a call starts
 // ─────────────────────────────────────────────────────────────────────────────
-function PersonaPicker({ t, lang, selected, onSelect, onStart }) {
+function PersonaPicker({ t, lang, selected, onSelect, onStart, callLang, onCallLangChange }) {
   return (
     <>
       <div className="card mb-16">
-        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
+        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 320px' }}>
             <h3 style={{ marginTop: 0 }}>{t('Choose your training persona', 'اختر شخصية التدريب')}</h3>
             <div className="muted" style={{ fontSize: 12, lineHeight: 1.6, maxWidth: 640 }}>
               {t('Each persona stress-tests a different selling skill. Recommended order: Friendly → Yes-Man → Devil\'s Advocate → Deal-Maker → Ego → Evidence.',
                  'كل شخصية تختبر مهارة بيع مختلفة. الترتيب الموصى به: الودود → الموافق → المعترضة → التاجر → المكانة → الدليل.')}
             </div>
           </div>
-          <button className="btn primary" onClick={onStart}>
-            <Icon name="play" size={14} /> &nbsp;
-            {t('Begin call with', 'ابدأ مع')} {lang === 'ar' ? selected.nameAr : selected.name}
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--tx2)', marginBottom: 4, textAlign: 'end' }}>
+                {t('Call language', 'لغة المكالمة')}
+              </div>
+              <div className="rp-lang-seg" role="group" aria-label={t('Call language', 'لغة المكالمة')}>
+                <button
+                  type="button"
+                  className={`rp-lang-btn ${callLang === 'en' ? 'active' : ''}`}
+                  onClick={() => onCallLangChange('en')}
+                >
+                  English
+                </button>
+                <button
+                  type="button"
+                  className={`rp-lang-btn ${callLang === 'ar' ? 'active' : ''}`}
+                  onClick={() => onCallLangChange('ar')}
+                >
+                  العربية
+                </button>
+              </div>
+            </div>
+            <button className="btn primary" onClick={onStart}>
+              <Icon name="play" size={14} /> &nbsp;
+              {t('Begin call with', 'ابدأ مع')} {lang === 'ar' ? selected.nameAr : selected.name}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -659,13 +730,3 @@ function FeedbackBlock({ label, color, items }) {
   )
 }
 
-function MicIcon() {
-  return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="9" y="3" width="6" height="11" rx="3" />
-      <path d="M5 11a7 7 0 0 0 14 0" />
-      <path d="M12 18v3" />
-      <path d="M9 21h6" />
-    </svg>
-  )
-}

@@ -19,4 +19,18 @@ export const mockUsers = [
     activeDuty: true,
     learningIndex: 0,
   },
+  {
+    id: 'u-learner-1',
+    email: 'malrefaey@cigalah.com.sa',
+    name: 'Mohamed Al-Refaey',
+    nameAr: 'محمد الرفاعي',
+    init: 'MR', col: '#047857', bg: '#ECFDF5',
+    role: 'learner',
+    scope: null, reportsTo: null,
+    country: 'KSA', region: 'GCC', district: null,
+    therapyArea: 'All', jobTitle: 'Medical Representative',
+    hireDate: '2026-05-21',
+    activeDuty: true,
+    learningIndex: 0,
+  },
 ]

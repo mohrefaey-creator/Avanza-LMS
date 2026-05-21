@@ -5,17 +5,28 @@ import Icon from '../../components/Icon.jsx'
 // Production state — only the platform owner is seeded. The login handler
 // matches the user by email; role is resolved server-side from the matched
 // account, so no manual role picker is shown.
-const OWNER_EMAIL = 'moh.refaey@gmail.com'
+const CREDENTIALS = [
+  { email: 'moh.refaey@gmail.com',       password: 'Refaey1234', role: 'admin'   },
+  { email: 'malrefaey@cigalah.com.sa',   password: 'Refaey1234', role: 'learner' },
+]
 
 export default function Login() {
   const { t, login } = useApp()
-  const [email, setEmail] = useState(OWNER_EMAIL)
+  const [email, setEmail] = useState(CREDENTIALS[0].email)
   const [password, setPassword] = useState('')
-  const [remember, setRemember] = useState(true)
+  const [error, setError] = useState('')
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    login('admin', email, { remember })
+    const match = CREDENTIALS.find(
+      (c) => c.email.toLowerCase() === email.toLowerCase() && c.password === password
+    )
+    if (!match) {
+      setError(t('Incorrect email or password.', 'البريد الإلكتروني أو كلمة المرور غير صحيحة.'))
+      return
+    }
+    setError('')
+    login(match.role, match.email, { remember: true })
   }
 
   return (
@@ -46,17 +57,12 @@ export default function Login() {
 
             <div className="field">
               <label>{t('Password', 'كلمة المرور')}</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <input type="password" value={password} onChange={(e) => { setPassword(e.target.value); if (error) setError('') }} required />
             </div>
 
-            <label className="login-remember">
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-              />
-              <span>{t('Keep me signed in on this device', 'حافظ على تسجيل الدخول على هذا الجهاز')}</span>
-            </label>
+            {error && (
+              <div style={{ color:'#ff7676', fontSize:11, marginTop:-4, marginBottom:4 }}>{error}</div>
+            )}
 
             <button type="submit" className="btn primary" style={{ width:'100%', padding:'10px', fontSize:12, marginTop:6 }}>
               {t('Sign in', 'تسجيل الدخول')}
